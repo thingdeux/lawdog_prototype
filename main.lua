@@ -421,8 +421,7 @@ end
 
 
 function ground_collision (dt, shape_a, shape_b, mtv_x, mtv_y)
-	world.debugtext.level[#world.debugtext.level+1] = string.format("Colliding. mtv = (%s, %s)",
-											mtv_x, mtv_y)
+	world.debugtext.level[#world.debugtext.level+1] = string.format("Colliding. mtv = (%s, %s)", mtv_x, mtv_y)
 
 	local function levelChecks(shape, shapetype, indexie)
 		if shape_a == world.leftwall or world.rightwall or shape_b == world.leftwall or world.rightwall then
@@ -481,35 +480,52 @@ end
 
 function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 	--world.debugtext.entity[#world.debugtext.entity+1] = string.format("Colliding. mtv = (%s, %s)",mtv_x, mtv_y)
+	local isPlayer, isPlayerFist, isPlayerFoot, isPlayerThrow,
+		  isEnemy, isEnemyFist, isEnemyFoot = false
+	local references = {isPlayer, isPlayerFist, isPlayerFoot, isPlayerThrow,
+		  isEnemy, isEnemyFist, isEnemyFoot}
 
-	local function entityTouching(pl)
 
-		if findBox(pl, {player.boundingbox.entity_top_right,
-						player.boundingbox.entity_bottom_right}) then			
+	local function resolveCollision()
+
+		if checkCollisionObject({player.boundingbox.entity_top_right, player.boundingbox.entity_bottom_right}, pl) then			
 			pl:move(mtv_x, mtv_y)
 			player.x = player.x + mtv_x
 			player.velocity.x = 0
-		elseif findBox(pl, {player.boundingbox.entity_top_left,
-							player.boundingbox.entity_bottom_left}) then
+		elseif checkCollisionObject({player.boundingbox.entity_top_left, player.boundingbox.entity_bottom_left}, pl) then
 			pl:move(mtv_x, mtv_y)
 			player.x = player.x + mtv_x
 			player.velocity.x = 0
 		end
 	end
 
-	if findCollisionBox(shape_a, shape_b, {player.boundingbox.entity_top_right,
-									  player.boundingbox.entity_top_left,
-									  player.boundingbox.entity_bottom_right,
-									  player.boundingbox.entity_bottom_left}) then
+	
+	local function checkCollisionObjects(shape_a, shape_b)
+		
+		--If a player is somewhere in this collision
+		if checkCollisionContainers(player.boundingbox.container, shape) then
+		
+		end
+	
 
-		local playa_tr = findInteractions(shape_a, shape_b, {player.boundingbox.entity_top_right,
-										   					player.boundingbox.entity_top_left, 
-										   					player.boundingbox.entity_bottom_right,
-										   					player.boundingbox.entity_bottom_left} )
-		
-		
-		entityTouching(playa_tr)
+		return false
+
+
+	local function getCollisionObject(var_names)
+
+
+	local function checkCollisionContainers(var_names, shape)
+		for i,value in pairs(var_names) do
+			if shape == value then
+				return true
+			end
+		end
+		return false
 	end
+
+end
+	
+
 
 	
 
@@ -561,6 +577,8 @@ function create_player()
 	player.boundingbox.entity_top_right = entityCollider:addRectangle(player.x + 20, player.y, 20, 50 )
 	player.boundingbox.entity_bottom_right = entityCollider:addRectangle(player.x + 20, player.y + 50, 20, 50 )
 	player.boundingbox.entity_bottom_left = entityCollider:addRectangle(player.x, player.y + 50, 20, 50 )
+	player.boundingbox.container = {player.boundingbox.entity_top_left, player.boundingbox.entity_top_right,
+									player.boundingbox.entity_bottom_left, player.boundingbox.entity_bottom_right}
 	Collider:addToGroup("players", player.boundingbox.level)
 	entityCollider:addToGroup("internalBoundingBoxes", player.boundingbox.entity_top_left, 
 			player.boundingbox.entity_top_right, player.boundingbox.entity_bottom_right, 
@@ -647,10 +665,12 @@ function createEnemies(number)
 		enemy.boundingbox.entity_top_right = entityCollider:addRectangle(enemy.x + 20, enemy.y, 20, 50 )
 		enemy.boundingbox.entity_bottom_right = entityCollider:addRectangle(enemy.x + 20, enemy.y + 50, 20, 50 )
 		enemy.boundingbox.entity_bottom_left = entityCollider:addRectangle(enemy.x, enemy.y + 50, 20, 50 )
+		enemy.boundingbox.container = {enemy.boundingbox.entity_top_left, enemy.boundingbox.entity_top_right,
+										enemy.boundingbox.entity_bottom_right, enemy.boundingbox.entity_bottom_left}
 		entityCollider:addToGroup("enemyInternalBoundingBoxes", enemy.boundingbox.entity_top_left, 
 			enemy.boundingbox.entity_top_right, enemy.boundingbox.entity_bottom_right, 
 			enemy.boundingbox.entity_bottom_left)
-		enemy.isMoving = true
+		enemy.isMoving = false
 		enemy.isInGroup = false
 		table.insert(enemies, enemy)
 	end
@@ -664,41 +684,3 @@ function createEnemies(number)
 	end
 end
 
-
-function findCollisionBox(shape_a, shape_b, var_name)
-	
-
-	for i,value in pairs(var_name) do		
-		if shape_a == value then
-			return true
-		elseif shape_b == value then
-			return true
-		end
-	end
-
-	return false
-end
-
-function findBox(shape, var_name)
-
-	for i, value in pairs(var_name) do
-		if shape == value then
-			return true
-		end
-	end
-	return false
-
-end
-
-
-function findInteractions(shape, shape2, var_name)
-	for i,value in pairs(var_name) do
-		if shape == value then
-			return shape
-		elseif shape2 == value then 
-			return shape
-		end
-	end
-
-	return false
-end
