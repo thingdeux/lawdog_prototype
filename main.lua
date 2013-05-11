@@ -33,6 +33,8 @@ end  -- End Load Function
 
 
 function love.update(dt)
+	checkEnemyRemoval()
+	
 
 
     if #world.debugtext.level > 20 then
@@ -72,6 +74,7 @@ function love.update(dt)
 
 	doPlayerProcessing(dt)
 	doEnemyProcessing(dt)
+
 end  --End Updated function
 
 function love.draw()
@@ -84,7 +87,7 @@ function love.draw()
 		love.graphics.print("Velocity: " .. tostring(player.velocity.y), 40,40)
 		love.graphics.print("AnimTimer: " .. tostring(player.animTimer), 40,50)
 		love.graphics.print("isAttacking: " .. tostring(player.isAttacking), 40,60)
-		love.graphics.print("Mouse X: " .. tostring(mousex) .. "Mouse Y: " .. tostring(mousey), 40,70)
+		love.graphics.print("Player X: " .. tostring(player.x) .. "Player Y: " .. tostring(player.y), 40,70)
 	end
 
 
@@ -112,7 +115,8 @@ function love.draw()
 		end
 
 		if world.debug.enemies then
-			love.graphics.print("Enemy(" .. tostring(i) .. "): " .. "Velocity: " .. tostring(value.velocity.y), 0, value.debugtextloc)
+			love.graphics.print("Enemy(" .. tostring(i) .. "): " .. "X: " .. tostring(value.x), 0, value.debugtextloc)
+			love.graphics.print("NumOfEnemies: " .. tostring(#enemies), 800, 10)
 		end
 	end
 
@@ -126,11 +130,14 @@ function love.draw()
 
 		--Draw Enemy Entity collision boxes
 		for i, enemy in ipairs(enemies) do
+
+
 			--enemy.boundingbox.entity_main:draw('line')
 			enemy.boundingbox.entity_top_left:draw('line')
 			enemy.boundingbox.entity_top_right:draw('line')
 			enemy.boundingbox.entity_bottom_left:draw('line')
 			enemy.boundingbox.entity_bottom_right:draw('line')
+			
 		end
 
 		for i = 1,#world.debugtext.entity do
@@ -217,6 +224,14 @@ function love.keyreleased(key)
 	if key == "a" then
 		player.animation = 'idle'
 	end
+
+	if key == "w" then
+		player.animation = 'idle'
+	end
+
+	if key == "s" then
+		player.animation = 'idle'
+	end
 end
 
 function love.mousepressed(x, y, button)
@@ -232,7 +247,18 @@ end
 
 
 
+
+
 --Player Functions
+function snapPlayerBoundingBoxes()
+		player.boundingbox.level:moveTo(player.x + 28, player.y + 50)
+		--player.boundingbox.entity_main:moveTo(player.x  + 28, player.y + 50)
+		player.boundingbox.entity_top_left:moveTo(player.x + 20, player.y + 25)
+		player.boundingbox.entity_top_right:moveTo(player.x + 40, player.y + 25)
+		player.boundingbox.entity_bottom_right:moveTo(player.x + 40, player.y + 75)
+		player.boundingbox.entity_bottom_left:moveTo(player.x + 20, player.y + 75)
+end
+
 function doPlayerAnimation(key)
 	local function moveplayer(direction)
 		if direction == 'right' then
@@ -252,14 +278,7 @@ function doPlayerAnimation(key)
 				player.velocity.y = player.velocity.y + world.gravity
 			end
 		end
-
-		player.boundingbox.level:moveTo(player.x + 28, player.y + 50)
-		--player.boundingbox.entity_main:moveTo(player.x  + 28, player.y + 50)
-		player.boundingbox.entity_top_left:moveTo(player.x + 20, player.y + 25)
-		player.boundingbox.entity_top_right:moveTo(player.x + 40, player.y + 25)
-		player.boundingbox.entity_bottom_right:moveTo(player.x + 20, player.y + 75)
-		player.boundingbox.entity_bottom_left:moveTo(player.x + 40, player.y + 75)
-
+		snapPlayerBoundingBoxes()
 	end
 		
 		if key == "a" then
@@ -287,8 +306,6 @@ function doPlayerAnimation(key)
 		if key == 'fall' then
 			moveplayer('down')
 		end
-
-
 end
 
 function playerAttack(type, dt)
@@ -331,6 +348,15 @@ function doPlayerProcessing(dt)
 end
 
 --Enemy Functions
+function snapEnemyBoundingBoxes(index)
+		index.boundingbox.level:moveTo(index.x + 28, index.y + 50)
+		--index.boundingbox.entity_main:moveTo(index.x  + 28, index.y + 50)
+		index.boundingbox.entity_top_left:moveTo(index.x + 20, index.y + 25)
+		index.boundingbox.entity_top_right:moveTo(index.x + 40, index.y + 25)
+		index.boundingbox.entity_bottom_right:moveTo(index.x + 20, index.y + 75)
+		index.boundingbox.entity_bottom_left:moveTo(index.x + 40, index.y + 75)
+end
+
 function doEnemyProcessing(dt)
 	
 	for i, value in ipairs(enemies) do
@@ -383,13 +409,7 @@ function doEnemyAnimation(action, indexie)
 				indexie.velocity.y = indexie.velocity.y + world.gravity
 			end
 		end
-		indexie.boundingbox.level:moveTo(indexie.x + 28, indexie.y + 50)
-		--indexie.boundingbox.entity_main:moveTo(indexie.x  + 28, indexie.y + 50)
-		indexie.boundingbox.entity_top_left:moveTo(indexie.x + 20, indexie.y + 25)
-		indexie.boundingbox.entity_top_right:moveTo(indexie.x + 40, indexie.y + 25)
-		indexie.boundingbox.entity_bottom_right:moveTo(indexie.x + 20, indexie.y + 75)
-		indexie.boundingbox.entity_bottom_left:moveTo(indexie.x + 40, indexie.y + 75)
-
+		snapEnemyBoundingBoxes(indexie)
 	end
 		
 		if action == "a" then
@@ -419,7 +439,34 @@ function doEnemyAnimation(action, indexie)
 		end
 end
 
+function checkEnemyRemoval()
+	for i, value in ipairs(enemies) do
 
+		if value.x > screenwidth or value.x < 0 then
+			value.isAlive = false
+		elseif value.y > screenheight + 10 or value.y < 0 then
+			value.isAlive = false
+		end
+
+		if value.isAlive == false then
+			for is, col_var in pairs(value.boundingbox.container) do
+				entityCollider:remove(col_var)
+			end
+			Collider:remove(value.boundingbox.level)
+		
+			for ix, enemy_var in pairs(value) do
+				value[ix] = 0
+				value[ix] = nil
+			end
+			value = nil
+			table.remove(enemies,i)
+
+		end
+
+	end
+end
+
+--Collision Functions
 function ground_collision (dt, shape_a, shape_b, mtv_x, mtv_y)
 	world.debugtext.level[#world.debugtext.level+1] = string.format("Colliding. mtv = (%s, %s)", mtv_x, mtv_y)
 
@@ -480,39 +527,7 @@ end
 
 function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 	--world.debugtext.entity[#world.debugtext.entity+1] = string.format("Colliding. mtv = (%s, %s)",mtv_x, mtv_y)
-	local isPlayer, isPlayerFist, isPlayerFoot, isPlayerThrow,
-		  isEnemy, isEnemyFist, isEnemyFoot = false
-	local references = {isPlayer, isPlayerFist, isPlayerFoot, isPlayerThrow,
-		  isEnemy, isEnemyFist, isEnemyFoot}
-
-
-	local function resolveCollision()
-
-		if checkCollisionObject({player.boundingbox.entity_top_right, player.boundingbox.entity_bottom_right}, pl) then			
-			pl:move(mtv_x, mtv_y)
-			player.x = player.x + mtv_x
-			player.velocity.x = 0
-		elseif checkCollisionObject({player.boundingbox.entity_top_left, player.boundingbox.entity_bottom_left}, pl) then
-			pl:move(mtv_x, mtv_y)
-			player.x = player.x + mtv_x
-			player.velocity.x = 0
-		end
-	end
-
-	
-	local function checkCollisionObjects(shape_a, shape_b)
-		
-		--If a player is somewhere in this collision
-		if checkCollisionContainers(player.boundingbox.container, shape) then
-		
-		end
-	
-
-		return false
-
-
-	local function getCollisionObject(var_names)
-
+	local isPlayer, isEnemy, enemyIndex, isEnemy2, enemyIndex2 = nil
 
 	local function checkCollisionContainers(var_names, shape)
 		for i,value in pairs(var_names) do
@@ -523,11 +538,77 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 		return false
 	end
 
-end
-	
+
+	local function resolveCollision()
+		
+		if isPlayer then
+			
+			if checkCollisionContainers({player.boundingbox.entity_top_right,
+										player.boundingbox.entity_bottom_right,
+										player.boundingbox.entity_top_left,
+										player.boundingbox.entity_bottom_left}, isPlayer) then
+				player.x = player.x + mtv_x
+				player.velocity.x = 0
+				snapPlayerBoundingBoxes()
+				if isEnemy then
+					enemyIndex.velocity.x = 0
+					enemyIndex.x = enemyIndex.x + -mtv_x
+					snapEnemyBoundingBoxes(enemyIndex)
+				end
+			end
+		elseif isEnemy then
+			if checkCollisionContainers({enemyIndex.boundingbox.entity_top_right, 
+										enemyIndex.boundingbox.entity_top_left,
+										enemyIndex.boundingbox.entity_bottom_left,
+										enemyIndex.boundingbox.entity_bottom_right}, isEnemy) then
+
+				enemyIndex.x = enemyIndex.x + mtv_x
+				enemyIndex.y = enemyIndex.y + mtv_y
+				enemyIndex.velocity.x = 0
+				snapEnemyBoundingBoxes(enemyIndex)
+				if isEnemy2 then
+					enemyIndex2.velocity.x = 0
+					enemyIndex2.x = enemyIndex2.x + -mtv_x
+					snapEnemyBoundingBoxes(enemyIndex2)
+				end
+			end
+
+		end
+
+	end
+
+
+
+
 
 
 	
+	local function checkCollisionObjects(shapes)
+		for i, value in pairs(shapes) do
+			
+			--If a player is somewhere in this collision
+			if checkCollisionContainers(player.boundingbox.container, value) then
+				isPlayer = value
+			end
+
+			for i, enem in ipairs(enemies) do
+				if checkCollisionContainers(enem.boundingbox.container, value) and not isEnemy then
+					isEnemy = value
+					enemyIndex = enem
+				elseif checkCollisionContainers(enem.boundingbox.container, value) and isEnemy then
+					isEnemy2 = value
+					enemyIndex2 = enem
+				end
+
+			end
+
+		end
+	end
+		
+
+	checkCollisionObjects(  {shape_a, shape_b}  )
+	resolveCollision()
+
 
 end
 
@@ -554,6 +635,7 @@ function create_player()
 	player.x = 100
 	player.y = 400
 	player.isOnGround = false
+	player.isColliding = false
 	player.action = false
 	player.speed = 50
 	player.punchspeed = .2
@@ -603,7 +685,7 @@ function create_world()
 	--Level Geometry and collision box creation
 	world.groundpos = 640
 	world.leftwall = Collider:addRectangle(0, 20, 60, screenheight -20)
-	world.rightwall = Collider:addRectangle(900, 323, 20, screenheight -20)
+	world.rightwall = Collider:addRectangle(900, 323, 40, screenheight -20)
 	world.roof = Collider:addRectangle(0, 0, screenwidth, 20)
 	world.ground = Collider:addRectangle(60,world.groundpos, screenwidth - 64, 20)
 	Collider:addToGroup("level", world.leftwall, world.rightwall, world.roof, world.ground)
@@ -614,7 +696,7 @@ function create_world()
 	world.windResistance = 10
 	world.spawnLocations = {{215, 214},
 							{509, 236},
-							{403, 510},
+							{403, 510}, 
 							{993, 227},
 							{191, 497} }
 end
@@ -645,7 +727,7 @@ function createEnemies(number)
 		enemy.debug = true
 		enemy.speed = 40	
 		enemy.isFacingRight = true
-		enemy.action = 'a'
+		enemy.action = false
 		enemy.isAttacking = false
 		enemy.isOnGround = false
 		enemy.velocity = {}
@@ -667,10 +749,11 @@ function createEnemies(number)
 		enemy.boundingbox.entity_bottom_left = entityCollider:addRectangle(enemy.x, enemy.y + 50, 20, 50 )
 		enemy.boundingbox.container = {enemy.boundingbox.entity_top_left, enemy.boundingbox.entity_top_right,
 										enemy.boundingbox.entity_bottom_right, enemy.boundingbox.entity_bottom_left}
-		entityCollider:addToGroup("enemyInternalBoundingBoxes", enemy.boundingbox.entity_top_left, 
+		enemy.reference = "Enemy" .. tostring(#enemies)
+		entityCollider:addToGroup(enemy.reference, enemy.boundingbox.entity_top_left, 
 			enemy.boundingbox.entity_top_right, enemy.boundingbox.entity_bottom_right, 
 			enemy.boundingbox.entity_bottom_left)
-		enemy.isMoving = false
+		enemy.isMoving = true
 		enemy.isInGroup = false
 		table.insert(enemies, enemy)
 	end
