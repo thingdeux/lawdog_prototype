@@ -15,7 +15,7 @@ function love.load()
 
 	--Create HardonCollider instance -> Collider
 	Collider = HC(100, ground_collision, ground_collision_stop)
-	entityCollider = HC(100, entity_collision, entity_collision_stop)
+	entityCollider = HC(10, entity_collision, entity_collision_stop)
 
 	--LoadSpritesheets and create animations
 	load_graphics()
@@ -45,8 +45,7 @@ function love.update(dt)
     	table.remove(world.debugtext.entity, 1)
     end
 
-    Collider:update(dt)
-    entityCollider:update(dt)
+
 	standstill:update(dt)
 	walkanimation:update(dt)
 	weakenemystandstill:update(dt)
@@ -57,23 +56,27 @@ function love.update(dt)
 
 
 	if love.keyboard.isDown("a") then
-		doPlayerAnimation('a')
+		doPlayerAnimation('a',dt)
 	end
 	if love.keyboard.isDown("d") then
-		doPlayerAnimation('d')
+		doPlayerAnimation('d',dt)
 	end
 
 	if love.keyboard.isDown("s") then
 		player.y = player.y + 10
-		player.boundingbox.level:move(0, 10)
+		snapPlayerBoundingBoxes()
 	end
 	if love.keyboard.isDown("w") then
 		player.y = player.y - 10
-		player.boundingbox.level:move(0, -10)
+		snapPlayerBoundingBoxes()
 	end
 
+	
 	doPlayerProcessing(dt)
 	doEnemyProcessing(dt)
+	Collider:update(dt)
+    entityCollider:update(dt)
+
 
 end  --End Updated function
 
@@ -84,10 +87,11 @@ function love.draw()
 
 	--Draw Player variables if debug flag is set
 	if world.debug.player then
-		love.graphics.print("Velocity: " .. tostring(player.velocity.y), 340,40)
+		love.graphics.print("Velocity: " .. tostring(player.velocity.x), 340,40)
 		love.graphics.print("AnimTimer: " .. tostring(player.animTimer), 340,50)
 		love.graphics.print("isAttacking: " .. tostring(player.isAttacking), 340,60)
 		love.graphics.print("Player X: " .. tostring(player.x) .. "Player Y: " .. tostring(player.y), 340,70)
+		love.graphics.print("Player Yup: " .. tostring(player.yup), 340,80, math.rad(30))
 	end
 
 
@@ -221,10 +225,12 @@ end
 function love.keyreleased(key)
 	if key == "d" then
 		player.animation = 'idle'
+		player.velocity.x  = player.velocity.x - player.stoppingSpeed*4
 	end
 
 	if key == "a" then
 		player.animation = 'idle'
+		player.velocity.x  = player.velocity.x + player.stoppingSpeed*4
 	end
 
 	if key == "w" then
@@ -261,23 +267,23 @@ function snapPlayerBoundingBoxes()
 		player.boundingbox.entity_bottom_left:moveTo(player.x + player.boundingbox.offset_moveto_entity_left_x, player.y + player.boundingbox.offset_moveto_entity_bottom_y)
 end
 
-function doPlayerAnimation(key)
-	local function moveplayer(direction)
+function doPlayerAnimation(key,dt)
+	local function moveplayer(direction,dt)
 		if direction == 'right' then
 			if player.velocity.x < player.maxspeed then
-				player.velocity.x = player.velocity.x + player.speed
+				player.velocity.x = player.velocity.x + player.speed*dt
 				player.animation = 'walk'
 			end
 		elseif direction == 'left' then
 			if  player.velocity.x > -player.maxspeed then
-				player.velocity.x = player.velocity.x - player.speed
+				player.velocity.x = player.velocity.x - player.speed*dt
 				player.animation = 'walk'
 			end
 		end
 
 		if direction == 'down' then
 			if player.velocity.y < 20 then
-				player.velocity.y = player.velocity.y + world.gravity
+				player.velocity.y = player.velocity.y + world.gravity*dt
 			end
 		end
 		snapPlayerBoundingBoxes()
@@ -285,28 +291,28 @@ function doPlayerAnimation(key)
 		
 		if key == "a" then
 			if player.isFacingRight == false then
-				moveplayer('left')
+				moveplayer('left',dt)
 			elseif player.isFacingRight then
 				player.isFacingRight = false
 				walkanimation:flipH()
 				standstill:flipH()
-				moveplayer('left')
+				moveplayer('left',dt)
 			end
 		end
 
 		if key == "d" then
 			if player.isFacingRight then
-				moveplayer('right')
+				moveplayer('right',dt)
 			elseif player.isFacingRight == false then				
 				player.isFacingRight = true
 				walkanimation:flipH()
 				standstill:flipH()
-				moveplayer('right')
+				moveplayer('right',dt)
 			end
 		end
 
 		if key == 'fall' then
-			moveplayer('down')
+			moveplayer('down',dt)
 		end
 end
 
@@ -324,17 +330,23 @@ end
 
 function doPlayerProcessing(dt)
 
-	if player.isFacingRight then
-		if player.velocity.x > 0 then
-			player.velocity.x = -world.windResistance + player.velocity.x
-			player.x = player.x + player.velocity.x*dt
-		end
-	elseif player.isFacingRight == false then
-		if player.velocity.x < 0 then
-			player.velocity.x = world.windResistance + player.velocity.x
-			player.x = player.x + player.velocity.x*dt
-		end
+	
+	if player.velocity.x > 0 then
+		player.velocity.x = -world.windResistance*dt*player.stoppingSpeed + player.velocity.x
+		player.x = player.x + player.velocity.x*dt
+		snapPlayerBoundingBoxes()
 	end
+
+	if player.velocity.x < 0 then
+		player.velocity.x = world.windResistance*dt*player.stoppingSpeed + player.velocity.x
+		player.x = player.x + player.velocity.x*dt
+		snapPlayerBoundingBoxes()
+	end
+	if player.velocity.x > -3 and player.velocity.x < 3 and player.velocity.x ~= 0 and player.animation == 'idle' then
+		player.velocity.x = 0
+		player.yup = true
+	end
+	
 
 	if player.action then
 		if playerAttack then
@@ -344,9 +356,10 @@ function doPlayerProcessing(dt)
 
 	if player.isOnGround == false then		
 		player.y = player.y + player.velocity.y
-		doPlayerAnimation('fall')
+		doPlayerAnimation('fall',dt)
+		snapPlayerBoundingBoxes()
 	end
-
+	
 end
 
 --Enemy Functions
@@ -363,15 +376,15 @@ function doEnemyProcessing(dt)
 	
 	for i, value in ipairs(enemies) do
 		if value.isFacingRight and value.isMoving then  -- Enemy should move Right
-			doEnemyAnimation('d', value)
+			doEnemyAnimation('d', value,dt)
 			if value.velocity.x > 0 then
-				value.velocity.x = -world.windResistance + value.velocity.x
+				value.velocity.x = -world.windResistance*dt*value.stoppingSpeed + value.velocity.x
 				value.x = value.x + value.velocity.x*dt
 			end
 		elseif value.isFacingRight == false and value.isMoving then -- Enemy should move Left
-			doEnemyAnimation('a', value)
+			doEnemyAnimation('a', value,dt)
 			if value.velocity.x < 0 then
-				value.velocity.x = world.windResistance + value.velocity.x
+				value.velocity.x = world.windResistance*dt*value.stoppingSpeed + value.velocity.x
 				value.x = value.x + value.velocity.x*dt
 			end
 		end
@@ -384,31 +397,32 @@ function doEnemyProcessing(dt)
 
 		if value.isOnGround == false then		
 			value.y = value.y + value.velocity.y
-			doEnemyAnimation('fall', value)
+			doEnemyAnimation('fall', value,dt)
 		end
 	
 	end
 
 end
 
-function doEnemyAnimation(action, indexie)
+function doEnemyAnimation(action, indexie,dt)	
 	
-	local function moveEnemy(direction)
+	local function moveEnemy(direction,dt)
+
 		if direction == 'right' and indexie.isMoving then
 			if indexie.velocity.x < indexie.maxspeed then
-				indexie.velocity.x = indexie.velocity.x + indexie.speed
+				indexie.velocity.x = indexie.velocity.x + indexie.speed*dt
 				indexie.animation = 'walk'
 			end
 		elseif direction == 'left' and indexie.isMoving then
 			if  indexie.velocity.x > -indexie.maxspeed then
-				indexie.velocity.x = indexie.velocity.x - indexie.speed
+				indexie.velocity.x = indexie.velocity.x - indexie.speed*dt
 				indexie.animation = 'walk'
 			end
 		end
-
+		
 		if direction == 'down' then
-			if indexie.velocity.y < 20 then
-				indexie.velocity.y = indexie.velocity.y + world.gravity
+			if indexie.velocity.y < 20 then	
+				indexie.velocity.y = indexie.velocity.y + world.gravity*dt
 			end
 		end
 		snapEnemyBoundingBoxes(indexie)
@@ -416,28 +430,28 @@ function doEnemyAnimation(action, indexie)
 		
 		if action == "a" then
 			if indexie.isFacingRight == false then
-				moveEnemy('left')
+				moveEnemy('left',dt)
 			elseif indexie.isFacingRight then
 				indexie.isFacingRight = false
 				indexie.walkanimation:flipH()
 				indexie.standstillanimation:flipH()
-				moveEnemy('left')
+				moveEnemy('left',dt)
 			end
 		end
 
 		if action == "d" then
 			if indexie.isFacingRight then
-				moveEnemy('right')
+				moveEnemy('right',dt)
 			elseif indexie.isFacingRight == false then				
 				indexie.isFacingRight = true
 				indexie.walkanimation:flipH()
 				indexie.standstillanimation:flipH()
-				moveEnemy('right')
+				moveEnemy('right',dt)
 			end
 		end
 
 		if action == 'fall' then
-			moveEnemy('down')
+			moveEnemy('down',dt)
 		end
 end
 
@@ -546,21 +560,20 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 		if isPlayer then
 			
 			if checkCollisionContainers({player.boundingbox.entity_main}, isPlayer) then
-
-	
 					
-					player.velocity.x = 0
-					player.x = player.x + mtv_x					
-					snapPlayerBoundingBoxes()
+					
 					if isEnemy then
+						enemyIndex.velocity.x = 0						
+						enemyIndex.velocity.x = enemyIndex.velocity.x + -mtv_x*dt-10
+						snapEnemyBoundingBoxes(enemyIndex)
+					
+						player.velocity.x = 0
+						player.velocity.x = player.velocity.x + mtv_x*dt+10
+						snapPlayerBoundingBoxes()						
 						
-						enemyIndex.velocity.x = 0
 						if mtv_x <- 10 or mtv_x > 10 then
 							world.debugtext.entity[#world.debugtext.entity+1] = string.format("PColliding. mtv/Vel = (%s, %s)",math.floor(-mtv_x), enemyIndex.velocity.x)
 						end
-						
-						enemyIndex.x = enemyIndex.x - mtv_x
-						snapEnemyBoundingBoxes(enemyIndex)
 	
 					end
 
@@ -568,14 +581,14 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 			end
 		elseif isEnemy then
 			if checkCollisionContainers({enemyIndex.boundingbox.entity_main}, isEnemy) then
-				--world.debugtext.entity[#world.debugtext.entity+1] = string.format("Colliding. mtv/Vel = (%s, %s)",math.floor(mtv_x), enemyIndex.velocity.x)
-				enemyIndex.velocity.x = 0
-				enemyIndex.x = enemyIndex.x + mtv_x
-				enemyIndex.y = enemyIndex.y + mtv_y				
-				snapEnemyBoundingBoxes(enemyIndex)
+
 				if isEnemy2 then
-					enemyIndex2.velocity.x = 0
-					enemyIndex2.x = enemyIndex2.x + -mtv_x
+					enemyIndex.velocity.x = 0						
+					enemyIndex.velocity.x = enemyIndex.velocity.x + mtv_x*dt+4
+					snapEnemyBoundingBoxes(enemyIndex)
+
+					enemyIndex2.velocity.x = 0						
+					enemyIndex2.velocity.x = enemyIndex2.velocity.x + -mtv_x*dt-4
 					snapEnemyBoundingBoxes(enemyIndex2)
 				end
 			end
@@ -633,14 +646,16 @@ end
 
 function create_player()
 	player = {}
+	player.yup = false
 	player.x = 300
 	player.y = 400
 	player.isOnGround = false
 	player.action = false
-	player.speed = 50
+	player.speed = 400
 	player.punchspeed = .2
 	player.kickspeed = .4
-	player.maxspeed = 100
+	player.maxspeed = 180
+	player.stoppingSpeed = 12
 	player.velocity = {}
 	player.velocity.x = 0
 	player.velocity.y = 0
@@ -711,8 +726,8 @@ function create_world()
 	Collider:setPassive(world.leftwall, world.rightwall, world.roof, world.ground)
 
 	world.level = 1
-	world.gravity = 1
-	world.windResistance = 10
+	world.gravity = 40
+	world.windResistance = 20
 	world.spawnLocations = {{215, 214},
 							--{509, 236},
 							--{403, 510}, 
@@ -741,13 +756,15 @@ function createEnemies(number)
 		end
 		enemy.punchspeed = .2
 		enemy.kickspeed = .4
-		enemy.maxspeed = 100
+		enemy.maxspeed = 150
 		enemy.debugtextloc = #enemies * 10
 		enemy.debug = true
-		enemy.speed = 40	
+		enemy.speed = 400	
+		enemy.stoppingSpeed = 12
 		enemy.isFacingRight = true
 		enemy.action = false
 		enemy.isColliding = false
+		enemy.isMoving = true
 		enemy.isAttacking = false
 		enemy.isOnGround = false
 		enemy.velocity = {}
@@ -795,7 +812,7 @@ function createEnemies(number)
 		entityCollider:addToGroup(enemy.reference, enemy.boundingbox.entity_top_left, 
 			enemy.boundingbox.entity_top_right, enemy.boundingbox.entity_bottom_right, 
 			enemy.boundingbox.entity_bottom_left,enemy.boundingbox.entity_main)
-		enemy.isMoving = true
+		
 		enemy.isInGroup = false
 		table.insert(enemies, enemy)
 	end
