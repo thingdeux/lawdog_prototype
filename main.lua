@@ -41,7 +41,7 @@ function love.update(dt)
         table.remove(world.debugtext.level, 1)
     end
 
-    while #world.debugtext.entity > 20 do
+    while #world.debugtext.entity > 40 do
     	table.remove(world.debugtext.entity, 1)
     end
 
@@ -79,15 +79,15 @@ end  --End Updated function
 
 function love.draw()
 	--Draw Background and UI Elements
-	love.graphics.draw(background, 0, 0)
+	--love.graphics.draw(background, 0, 0)
 	love.graphics.print("Player Energy: " .. tostring(player.energy), 800, 0)
 
 	--Draw Player variables if debug flag is set
 	if world.debug.player then
-		love.graphics.print("Velocity: " .. tostring(player.velocity.y), 40,40)
-		love.graphics.print("AnimTimer: " .. tostring(player.animTimer), 40,50)
-		love.graphics.print("isAttacking: " .. tostring(player.isAttacking), 40,60)
-		love.graphics.print("Player X: " .. tostring(player.x) .. "Player Y: " .. tostring(player.y), 40,70)
+		love.graphics.print("Velocity: " .. tostring(player.velocity.y), 340,40)
+		love.graphics.print("AnimTimer: " .. tostring(player.animTimer), 340,50)
+		love.graphics.print("isAttacking: " .. tostring(player.isAttacking), 340,60)
+		love.graphics.print("Player X: " .. tostring(player.x) .. "Player Y: " .. tostring(player.y), 340,70)
 	end
 
 
@@ -115,28 +115,30 @@ function love.draw()
 		end
 
 		if world.debug.enemies then
-			love.graphics.print("Enemy(" .. tostring(i) .. "): " .. "X: " .. tostring(value.x), 0, value.debugtextloc)
+			love.graphics.print("Enemy(" .. tostring(i) .. "): " .. "VelX: " .. tostring(value.velocity.x) .. " X: " .. tostring(value.x), 0, value.debugtextloc)
 			love.graphics.print("NumOfEnemies: " .. tostring(#enemies), 800, 10)
 		end
 	end
 
 	if world.debug.collision_entity then
 		--Draw player Entity collision stuff
-		--player.boundingbox.entity_main:draw('line')
-		player.boundingbox.entity_top_left:draw('line')
-		player.boundingbox.entity_top_right:draw('line')
-		player.boundingbox.entity_bottom_left:draw('line')
-		player.boundingbox.entity_bottom_right:draw('line')
+		love.graphics.setColor(255,255,12, 255)
+		player.boundingbox.entity_main:draw('line')
+		love.graphics.setColor(255,255,255, 255)
+		--player.boundingbox.entity_top_left:draw('line')
+		--player.boundingbox.entity_top_right:draw('line')
+		--player.boundingbox.entity_bottom_left:draw('line')
+		--player.boundingbox.entity_bottom_right:draw('line')
 
 		--Draw Enemy Entity collision boxes
 		for i, enemy in ipairs(enemies) do
 
 
-			--enemy.boundingbox.entity_main:draw('line')
-			enemy.boundingbox.entity_top_left:draw('line')
-			enemy.boundingbox.entity_top_right:draw('line')
-			enemy.boundingbox.entity_bottom_left:draw('line')
-			enemy.boundingbox.entity_bottom_right:draw('line')
+			enemy.boundingbox.entity_main:draw('line')
+			--enemy.boundingbox.entity_top_left:draw('line')
+			--enemy.boundingbox.entity_top_right:draw('line')
+			--enemy.boundingbox.entity_bottom_left:draw('line')
+			--enemy.boundingbox.entity_bottom_right:draw('line')
 			
 		end
 
@@ -251,12 +253,12 @@ end
 
 --Player Functions
 function snapPlayerBoundingBoxes()
-		player.boundingbox.level:moveTo(player.x + 28, player.y + 50)
-		--player.boundingbox.entity_main:moveTo(player.x  + 28, player.y + 50)
-		player.boundingbox.entity_top_left:moveTo(player.x + 20, player.y + 25)
-		player.boundingbox.entity_top_right:moveTo(player.x + 40, player.y + 25)
-		player.boundingbox.entity_bottom_right:moveTo(player.x + 40, player.y + 75)
-		player.boundingbox.entity_bottom_left:moveTo(player.x + 20, player.y + 75)
+		player.boundingbox.level:moveTo(player.x + player.boundingbox.offset_moveto_level_x, player.y + player.boundingbox.offset_moveto_level_y)
+		player.boundingbox.entity_main:moveTo(player.x + player.boundingbox.offset_moveto_level_x + 4, player.y + player.boundingbox.offset_moveto_level_y)
+		player.boundingbox.entity_top_left:moveTo(player.x + player.boundingbox.offset_moveto_entity_left_x, player.y + player.boundingbox.offset_moveto_entity_top_y)
+		player.boundingbox.entity_top_right:moveTo(player.x + player.boundingbox.offset_moveto_entity_right_x, player.y + player.boundingbox.offset_moveto_entity_top_y)
+		player.boundingbox.entity_bottom_right:moveTo(player.x + player.boundingbox.offset_moveto_entity_right_x, player.y + player.boundingbox.offset_moveto_entity_bottom_y)
+		player.boundingbox.entity_bottom_left:moveTo(player.x + player.boundingbox.offset_moveto_entity_left_x, player.y + player.boundingbox.offset_moveto_entity_bottom_y)
 end
 
 function doPlayerAnimation(key)
@@ -349,12 +351,12 @@ end
 
 --Enemy Functions
 function snapEnemyBoundingBoxes(index)
-		index.boundingbox.level:moveTo(index.x + 28, index.y + 50)
-		--index.boundingbox.entity_main:moveTo(index.x  + 28, index.y + 50)
-		index.boundingbox.entity_top_left:moveTo(index.x + 20, index.y + 25)
-		index.boundingbox.entity_top_right:moveTo(index.x + 40, index.y + 25)
-		index.boundingbox.entity_bottom_right:moveTo(index.x + 20, index.y + 75)
-		index.boundingbox.entity_bottom_left:moveTo(index.x + 40, index.y + 75)
+	index.boundingbox.level:moveTo(index.x + index.boundingbox.offset_moveto_level_x, index.y + index.boundingbox.offset_moveto_level_y)
+	index.boundingbox.entity_main:moveTo(index.x + index.boundingbox.offset_moveto_level_x + 4, index.y + index.boundingbox.offset_moveto_level_y)
+	index.boundingbox.entity_top_left:moveTo(index.x + index.boundingbox.offset_moveto_entity_left_x, index.y + index.boundingbox.offset_moveto_entity_top_y)
+	index.boundingbox.entity_top_right:moveTo(index.x + index.boundingbox.offset_moveto_entity_right_x, index.y + index.boundingbox.offset_moveto_entity_top_y)
+	index.boundingbox.entity_bottom_right:moveTo(index.x + index.boundingbox.offset_moveto_entity_right_x, index.y + index.boundingbox.offset_moveto_entity_bottom_y)
+	index.boundingbox.entity_bottom_left:moveTo(index.x + index.boundingbox.offset_moveto_entity_left_x, index.y + index.boundingbox.offset_moveto_entity_bottom_y)
 end
 
 function doEnemyProcessing(dt)
@@ -526,7 +528,7 @@ function ground_collision_stop(dt, shape_a, shape_b)
 end	
 
 function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
-	--world.debugtext.entity[#world.debugtext.entity+1] = string.format("Colliding. mtv = (%s, %s)",mtv_x, mtv_y)
+	
 	local isPlayer, isEnemy, enemyIndex, isEnemy2, enemyIndex2 = nil
 
 	local function checkCollisionContainers(var_names, shape)
@@ -543,28 +545,33 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 		
 		if isPlayer then
 			
-			if checkCollisionContainers({player.boundingbox.entity_top_right,
-										player.boundingbox.entity_bottom_right,
-										player.boundingbox.entity_top_left,
-										player.boundingbox.entity_bottom_left}, isPlayer) then
-				player.x = player.x + mtv_x
-				player.velocity.x = 0
-				snapPlayerBoundingBoxes()
-				if isEnemy then
-					enemyIndex.velocity.x = 0
-					enemyIndex.x = enemyIndex.x + -mtv_x
-					snapEnemyBoundingBoxes(enemyIndex)
-				end
+			if checkCollisionContainers({player.boundingbox.entity_main}, isPlayer) then
+
+	
+					
+					player.velocity.x = 0
+					player.x = player.x + mtv_x					
+					snapPlayerBoundingBoxes()
+					if isEnemy then
+						
+						enemyIndex.velocity.x = 0
+						if mtv_x <- 10 or mtv_x > 10 then
+							world.debugtext.entity[#world.debugtext.entity+1] = string.format("PColliding. mtv/Vel = (%s, %s)",math.floor(-mtv_x), enemyIndex.velocity.x)
+						end
+						
+						enemyIndex.x = enemyIndex.x - mtv_x
+						snapEnemyBoundingBoxes(enemyIndex)
+	
+					end
+
+
 			end
 		elseif isEnemy then
-			if checkCollisionContainers({enemyIndex.boundingbox.entity_top_right, 
-										enemyIndex.boundingbox.entity_top_left,
-										enemyIndex.boundingbox.entity_bottom_left,
-										enemyIndex.boundingbox.entity_bottom_right}, isEnemy) then
-
-				enemyIndex.x = enemyIndex.x + mtv_x
-				enemyIndex.y = enemyIndex.y + mtv_y
+			if checkCollisionContainers({enemyIndex.boundingbox.entity_main}, isEnemy) then
+				--world.debugtext.entity[#world.debugtext.entity+1] = string.format("Colliding. mtv/Vel = (%s, %s)",math.floor(mtv_x), enemyIndex.velocity.x)
 				enemyIndex.velocity.x = 0
+				enemyIndex.x = enemyIndex.x + mtv_x
+				enemyIndex.y = enemyIndex.y + mtv_y				
 				snapEnemyBoundingBoxes(enemyIndex)
 				if isEnemy2 then
 					enemyIndex2.velocity.x = 0
@@ -576,11 +583,6 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 		end
 
 	end
-
-
-
-
-
 
 	
 	local function checkCollisionObjects(shapes)
@@ -608,13 +610,12 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 
 	checkCollisionObjects(  {shape_a, shape_b}  )
 	resolveCollision()
-
-
 end
 
 
 function entity_collision_stop(dt, shape_a, shape_b)
 	--world.debugtext.entity[#world.debugtext.entity+1] = "Stopped Colliding"
+
 end
 
 function load_graphics()
@@ -632,10 +633,9 @@ end
 
 function create_player()
 	player = {}
-	player.x = 100
+	player.x = 300
 	player.y = 400
 	player.isOnGround = false
-	player.isColliding = false
 	player.action = false
 	player.speed = 50
 	player.punchspeed = .2
@@ -653,18 +653,37 @@ function create_player()
 	player.animTimer = 0
 	player.isAttacking = false
 	player.boundingbox = {}
-	player.boundingbox.level = Collider:addRectangle(player.x, player.y, 38, 100)
-	--player.boundingbox.entity_main = entityCollider:addRectangle(player.x-20, player.y, 88, 100)
-	player.boundingbox.entity_top_left = entityCollider:addRectangle(player.x, player.y, 20, 50 )
-	player.boundingbox.entity_top_right = entityCollider:addRectangle(player.x + 20, player.y, 20, 50 )
-	player.boundingbox.entity_bottom_right = entityCollider:addRectangle(player.x + 20, player.y + 50, 20, 50 )
-	player.boundingbox.entity_bottom_left = entityCollider:addRectangle(player.x, player.y + 50, 20, 50 )
+
+	--Offset measurements for snapping the bounding box to the player
+	player.boundingbox.offset_moveto_entity_left_x = 25
+	player.boundingbox.offset_moveto_entity_top_y = 25
+	player.boundingbox.offset_moveto_entity_right_x = 40 
+	player.boundingbox.offset_moveto_entity_bottom_y = 75
+	player.boundingbox.offset_moveto_level_x = 28
+	player.boundingbox.offset_moveto_level_y = 50
+	player.boundingbox.level_sizeX = 38
+	player.boundingbox.level_sizeY = 100
+	player.boundingbox.entity_sizeX = 15
+	player.boundingbox.entity_sizeY = 50
+
+	--Bounding Box for level collision (wraps around the players body)
+	player.boundingbox.level = Collider:addRectangle(player.x, player.y, player.boundingbox.level_sizeX, player.boundingbox.level_sizeY)
+	--Bounding box for entity -> entity collision (wraps around the players body)
+	player.boundingbox.entity_main = entityCollider:addRectangle(player.x + 4, player.y, player.boundingbox.level_sizeX + 2, player.boundingbox.level_sizeY)
+	player.boundingbox.entity_top_left = entityCollider:addRectangle(player.x + player.boundingbox.offset_moveto_entity_left_x/2, player.y, player.boundingbox.entity_sizeX, player.boundingbox.entity_sizeY )
+	player.boundingbox.entity_top_right = entityCollider:addRectangle(player.x + player.boundingbox.offset_moveto_entity_left_x, player.y, player.boundingbox.entity_sizeX, player.boundingbox.entity_sizeY )
+	player.boundingbox.entity_bottom_right = entityCollider:addRectangle(player.x + player.boundingbox.offset_moveto_entity_left_x, 
+																		player.y + player.boundingbox.offset_moveto_level_y, player.boundingbox.entity_sizeX, player.boundingbox.entity_sizeY )
+	player.boundingbox.entity_bottom_left = entityCollider:addRectangle(player.x + player.boundingbox.offset_moveto_entity_left_x/2, 
+																		player.y + player.boundingbox.offset_moveto_level_y, player.boundingbox.entity_sizeX, player.boundingbox.entity_sizeY )
+	--player.boundingbox.fist_box = entityCollider:addCollider:addRectangle(player.x)
 	player.boundingbox.container = {player.boundingbox.entity_top_left, player.boundingbox.entity_top_right,
-									player.boundingbox.entity_bottom_left, player.boundingbox.entity_bottom_right}
+									player.boundingbox.entity_bottom_left, player.boundingbox.entity_bottom_right,
+									player.boundingbox.entity_main}
 	Collider:addToGroup("players", player.boundingbox.level)
 	entityCollider:addToGroup("internalBoundingBoxes", player.boundingbox.entity_top_left, 
 			player.boundingbox.entity_top_right, player.boundingbox.entity_bottom_right, 
-			player.boundingbox.entity_bottom_left)
+			player.boundingbox.entity_bottom_left,player.boundingbox.entity_main)
 
 end
 
@@ -677,8 +696,8 @@ function create_world()
 
 	--Debug flags
 	world.debug = {}
-	world.debug.player = false
-	world.debug.enemies = false
+	world.debug.player = true
+	world.debug.enemies = true
 	world.debug.collision_level = false
 	world.debug.collision_entity = true
 
@@ -695,9 +714,9 @@ function create_world()
 	world.gravity = 1
 	world.windResistance = 10
 	world.spawnLocations = {{215, 214},
-							{509, 236},
-							{403, 510}, 
-							{993, 227},
+							--{509, 236},
+							--{403, 510}, 
+							--{993, 227},
 							{191, 497} }
 end
 
@@ -728,6 +747,7 @@ function createEnemies(number)
 		enemy.speed = 40	
 		enemy.isFacingRight = true
 		enemy.action = false
+		enemy.isColliding = false
 		enemy.isAttacking = false
 		enemy.isOnGround = false
 		enemy.velocity = {}
@@ -741,18 +761,40 @@ function createEnemies(number)
 		enemy.isShooting = false
 		enemy.animTimer = 0
 		enemy.boundingbox = {}
-		enemy.boundingbox.level = Collider:addRectangle(enemy.x, enemy.y, 38, 100)
-		--enemy.boundingbox.entity_main = entityCollider:addRectangle(enemy.x-20, enemy.y, 88, 100)
-		enemy.boundingbox.entity_top_left = entityCollider:addRectangle(enemy.x, enemy.y, 20, 50 )
-		enemy.boundingbox.entity_top_right = entityCollider:addRectangle(enemy.x + 20, enemy.y, 20, 50 )
-		enemy.boundingbox.entity_bottom_right = entityCollider:addRectangle(enemy.x + 20, enemy.y + 50, 20, 50 )
-		enemy.boundingbox.entity_bottom_left = entityCollider:addRectangle(enemy.x, enemy.y + 50, 20, 50 )
+		
+		enemy.boundingbox.offset_moveto_entity_left_x = 25
+		enemy.boundingbox.offset_moveto_entity_top_y = 25
+		enemy.boundingbox.offset_moveto_entity_right_x = 40 
+		enemy.boundingbox.offset_moveto_entity_bottom_y = 75
+		enemy.boundingbox.offset_moveto_level_x = 28
+		enemy.boundingbox.offset_moveto_level_y = 50
+		enemy.boundingbox.level_sizeX = 38
+		enemy.boundingbox.level_sizeY = 100
+		enemy.boundingbox.entity_sizeX = 15
+		enemy.boundingbox.entity_sizeY = 50
+
+		--Bounding Box for level collision (wraps around the enemys body)
+		enemy.boundingbox.level = Collider:addRectangle(enemy.x, enemy.y, enemy.boundingbox.level_sizeX, enemy.boundingbox.level_sizeY)
+		--Bounding box for entity -> entity collision (wraps around the enemys body)
+		enemy.boundingbox.entity_main = entityCollider:addRectangle(enemy.x + 4, enemy.y, enemy.boundingbox.level_sizeX + 2, enemy.boundingbox.level_sizeY)
+		enemy.boundingbox.entity_top_left = entityCollider:addRectangle(enemy.x + enemy.boundingbox.offset_moveto_entity_left_x/2, enemy.y, enemy.boundingbox.entity_sizeX, enemy.boundingbox.entity_sizeY )
+		enemy.boundingbox.entity_top_right = entityCollider:addRectangle(enemy.x + enemy.boundingbox.offset_moveto_entity_left_x, enemy.y, enemy.boundingbox.entity_sizeX, enemy.boundingbox.entity_sizeY )
+		enemy.boundingbox.entity_bottom_right = entityCollider:addRectangle(enemy.x + enemy.boundingbox.offset_moveto_entity_left_x, 
+																		enemy.y + enemy.boundingbox.offset_moveto_level_y, enemy.boundingbox.entity_sizeX, enemy.boundingbox.entity_sizeY )
+		enemy.boundingbox.entity_bottom_left = entityCollider:addRectangle(enemy.x + enemy.boundingbox.offset_moveto_entity_left_x/2, 
+																		enemy.y + enemy.boundingbox.offset_moveto_level_y, enemy.boundingbox.entity_sizeX, enemy.boundingbox.entity_sizeY )
+
+		
+		
+
+
 		enemy.boundingbox.container = {enemy.boundingbox.entity_top_left, enemy.boundingbox.entity_top_right,
-										enemy.boundingbox.entity_bottom_right, enemy.boundingbox.entity_bottom_left}
+										enemy.boundingbox.entity_bottom_right, enemy.boundingbox.entity_bottom_left,
+										enemy.boundingbox.entity_main}
 		enemy.reference = "Enemy" .. tostring(#enemies)
 		entityCollider:addToGroup(enemy.reference, enemy.boundingbox.entity_top_left, 
 			enemy.boundingbox.entity_top_right, enemy.boundingbox.entity_bottom_right, 
-			enemy.boundingbox.entity_bottom_left)
+			enemy.boundingbox.entity_bottom_left,enemy.boundingbox.entity_main)
 		enemy.isMoving = true
 		enemy.isInGroup = false
 		table.insert(enemies, enemy)
