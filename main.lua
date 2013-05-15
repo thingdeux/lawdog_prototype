@@ -49,7 +49,12 @@ function love.update(dt)
 	weakenemystandstill:update(dt)
 	weakenemywalkanimation:update(dt)
 	mediumenemystandstill:update(dt)
-	mediumeneywalkanimation:update(dt)
+	mediumenemywalkanimation:update(dt)
+	mediumenemyrunanimation:update(dt)
+	mediumenemystunned:update(dt)
+	mediumenemyjabbed_l1:update(dt)
+	mediumenemyjabbed_l2:update(dt)
+	mediumenemystandstill:update(dt)
 
 
 
@@ -80,7 +85,7 @@ end  --End Updated function
 
 function love.draw()
 	--Draw Background and UI Elements
-	love.graphics.draw(background, 0, 0)
+	--love.graphics.draw(background, 0, 0)
 	love.graphics.print("Player Energy: " .. tostring(player.energy), 800, 0)
 
 	--Draw Player variables if debug flag is set
@@ -109,14 +114,16 @@ function love.draw()
 	--Draw Enemies
 	for i, value in ipairs(enemies) do
 		
-		if value.animation == 'idle' and value.type == 'weak' then
-			value.standstillanimation:draw(charactersheet, value.x,value.y)
-		elseif value.animation == 'walk' and value.type == 'weak' then
-			value.walkanimation:draw(charactersheet, value.x, value.y)
+		if value.animation == 'idle' then
+			value.standstillanimation:draw(enemysheet, value.x,value.y)
+		elseif value.animation == 'walk' then
+			value.walkanimation:draw(enemysheet, value.x, value.y)
 		end
 
-		if world.debug.enemies then
-			love.graphics.print("Enemy(" .. tostring(i) .. "): " .. "VelX: " .. tostring(math.floor(value.velocity.x)) .. " X: " .. tostring( math.floor(value.x)), 0, value.debugtextloc)
+		if world.debug.enemies then			
+			love.graphics.print(string.format("Enemy (%s): VelX: %s - X: %s - facingRight: %s - isWalkFlipped: %s", 
+				i, math.floor(value.velocity.x), math.floor(value.x), tostring(value.isFacingRight), tostring(value.isWalkFlipped)),
+				 	0, value.debugtextloc)
 			love.graphics.print("NumOfEnemies: " .. tostring(#enemies), 800, 10)
 		end
 	end
@@ -321,6 +328,7 @@ function doPlayerAnimation(key,dt)
 			if player.isFacingRight == false then
 				moveplayer('left',dt)
 			elseif player.isFacingRight then
+				player.x = player.x - player.turnoffset
 				player.isFacingRight = false
 				walkanimation:flipH()
 				standstill:flipH()
@@ -331,7 +339,8 @@ function doPlayerAnimation(key,dt)
 		if key == "d" then
 			if player.isFacingRight then
 				moveplayer('right',dt)
-			elseif player.isFacingRight == false then				
+			elseif player.isFacingRight == false then
+				player.x = player.x + player.turnoffset
 				player.isFacingRight = true
 				walkanimation:flipH()
 				standstill:flipH()
@@ -424,8 +433,7 @@ function doEnemyProcessing(dt)
 		if enemyindex.velocity.x < -50 then
 			--enemyindex.velocity.x = enemyindex.velocity.x + enemyindex.speed*dt
 			enemyindex.velocity.x = world.windResistance*dt*enemyindex.stoppingSpeed + enemyindex.velocity.x
-			enemyindex.x = enemyindex.x + enemyindex.velocity.x*dt
-			print("-   " .. tostring(world.windResistance*dt*enemyindex.stoppingSpeed))
+			enemyindex.x = enemyindex.x + enemyindex.velocity.x*dt			
 		end
 
 		if enemyindex.velocity.x > -49 and enemyindex.velocity.x < 49 and enemyindex.velocity.x ~= 0 and enemyindex.animation == 'idle' then
@@ -476,10 +484,12 @@ function doEnemyAnimation(action, indexie)
 		
 		if action == "walk" then
 			if indexie.isFacingRight == true and indexie.isWalkFlipped then
+				indexie.x = indexie.x + indexie.turnoffset
 				indexie.walkanimation:flipH()
 				indexie.standstillanimation:flipH()
 				indexie.isWalkFlipped = false
 			elseif not indexie.isFacingRight and not indexie.isWalkFlipped then
+				indexie.x = indexie.x - indexie.turnoffset
 				indexie.walkanimation:flipH()
 				indexie.standstillanimation:flipH()
 				indexie.isWalkFlipped = true
@@ -611,11 +621,11 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 						--If it collides with the enemies body bounding box
 						if checkCollisionContainers({enemyIndex.boundingbox.entity_main}, isEnemy) then
 							enemyIndex.velocity.x = 0						
-							enemyIndex.velocity.x = enemyIndex.velocity.x + -mtv_x*dt-10
+							enemyIndex.velocity.x = enemyIndex.velocity.x + -mtv_x
 							snapEnemyBoundingBoxes(enemyIndex)
 					
 							player.velocity.x = 0
-							player.velocity.x = player.velocity.x + mtv_x*dt+10
+							player.velocity.x = player.velocity.x + mtv_x
 							snapPlayerBoundingBoxes()						
 							--world.debugtext.entity[#world.debugtext.entity+1] = string.format("PColliding. mtv/Vel = (%s, %s)",math.floor(-mtv_x), enemyIndex.velocity.x)
 						end
@@ -683,14 +693,89 @@ end
 function load_graphics()
 	--Load Graphics and init animations	
 	charactersheet = love.graphics.newImage("CharacterSheet.png")
+	enemysheet = love.graphics.newImage("enemy_sheet.png")
 	background = love.graphics.newImage("Background.jpg")
+
+	enemyIdleAnim = { love.graphics.newQuad(420, 0, 50, 100, enemysheet:getWidth(), enemysheet:getHeight())	}
+	enemyWalkAnim = {
+		--Row1
+		love.graphics.newQuad(20, 0, 50, 100, enemysheet:getWidth(), enemysheet:getHeight()),  love.graphics.newQuad(120, 0, 50, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		love.graphics.newQuad(220, 0, 50, 100, enemysheet:getWidth(), enemysheet:getHeight()), love.graphics.newQuad(320, 0, 50, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		love.graphics.newQuad(420, 0, 50, 100, enemysheet:getWidth(), enemysheet:getHeight()), love.graphics.newQuad(520, 0, 50, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		love.graphics.newQuad(620, 0, 50, 100, enemysheet:getWidth(), enemysheet:getHeight()), love.graphics.newQuad(720, 0, 50, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		--Row2
+		love.graphics.newQuad(20, 112, 50, 100, enemysheet:getWidth(), enemysheet:getHeight()),	love.graphics.newQuad(120, 112, 50, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		love.graphics.newQuad(220, 112, 50, 100, enemysheet:getWidth(), enemysheet:getHeight()),love.graphics.newQuad(320, 112, 50, 100, enemysheet:getWidth(), enemysheet:getHeight())
+	}
+	enemyRunAnim = {
+		--Row2
+		love.graphics.newQuad(412, 112, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()), love.graphics.newQuad(514, 112, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		love.graphics.newQuad(620, 112, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()), love.graphics.newQuad(730, 112, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		--Row3
+		love.graphics.newQuad(20, 222, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()), love.graphics.newQuad(120, 222, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		love.graphics.newQuad(210, 220, 82, 100, enemysheet:getWidth(), enemysheet:getHeight()), love.graphics.newQuad(310, 220, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		love.graphics.newQuad(410, 220, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()), love.graphics.newQuad(510, 220, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		love.graphics.newQuad(612, 222, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()), love.graphics.newQuad(712, 224, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		--Row4
+		love.graphics.newQuad(20, 340, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()),	love.graphics.newQuad(120, 340, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		love.graphics.newQuad(220, 340, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()), love.graphics.newQuad(320, 340, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		love.graphics.newQuad(411, 340, 81, 100, enemysheet:getWidth(), enemysheet:getHeight())
+	}
+	enemyStunnedAnim = {
+		--Row4
+		--love.graphics.newQuad(511, 340, 60, 100, enemysheet:getWidth(), enemysheet:getHeight()), 
+		--love.graphics.newQuad(611, 340, 60, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		--love.graphics.newQuad(711, 340, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+
+		--Row 5
+		love.graphics.newQuad(21, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		love.graphics.newQuad(121, 450, 75, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		love.graphics.newQuad(221, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		love.graphics.newQuad(321, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		love.graphics.newQuad(421, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight())
+	}
+	enemyJabbedL1 = {
+		--Row 5
+		love.graphics.newQuad(521, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()), 
+		love.graphics.newQuad(621, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		love.graphics.newQuad(721, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+
+		--Row 6		
+		--love.graphics.newQuad(721, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		love.graphics.newQuad(621, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		love.graphics.newQuad(521, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight())
+	}
+	enemyJabbedL2 = {
+		--Row 5
+		love.graphics.newQuad(521, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()), 
+		love.graphics.newQuad(621, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		love.graphics.newQuad(721, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+
+		--Row 6
+		love.graphics.newQuad(21, 560, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		love.graphics.newQuad(121, 560, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+
+		love.graphics.newQuad(21, 560, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		love.graphics.newQuad(721, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		love.graphics.newQuad(621, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+		love.graphics.newQuad(521, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
+	}
+
+
 	agrid = anim8.newGrid(60, 100, charactersheet:getWidth(), charactersheet:getHeight())
+	enemygrid = anim8.newGrid(50,100, enemysheet:getWidth(), enemysheet:getHeight())
 	standstill = anim8.newAnimation(agrid(1, 1), 0.1)
 	walkanimation = anim8.newAnimation(agrid('2-7', 1), 0.1)
 	weakenemystandstill = anim8.newAnimation(agrid(1, 2), 0.1)
 	weakenemywalkanimation = anim8.newAnimation(agrid('2-7', 2), 0.1)
-	mediumenemystandstill = anim8.newAnimation(agrid(1, 3), 0.1)
-	mediumeneywalkanimation = anim8.newAnimation(agrid('2-7', 3), 0.1)
+	
+	mediumenemystandstill = anim8.newAnimation(enemyIdleAnim, 0.1)
+	mediumenemywalkanimation = anim8.newAnimation(enemyWalkAnim, 0.09)
+	mediumenemyrunanimation = anim8.newAnimation(enemyRunAnim, 0.09)
+	mediumenemystunned = anim8.newAnimation(enemyStunnedAnim, 0.3)
+	mediumenemyjabbed_l1 = anim8.newAnimation(enemyJabbedL1, 0.06)
+	mediumenemyjabbed_l2 = anim8.newAnimation(enemyJabbedL2, 0.06)
+	
 end
 
 function create_player()
@@ -719,6 +804,7 @@ function create_player()
 	player.boundingbox = {}
 
 	--Offset measurements for snapping the bounding box to the player
+	player.turnoffset = 20
 	player.boundingbox.offset_moveto_fist_x = 50
 	player.boundingbox.fist_color = 120
 	player.boundingbox.offset_moveto_entity_left_x = 15
@@ -799,7 +885,7 @@ function createEnemies(number)
 		enemy.spawn = math.random(#world.spawnLocations)
 		enemy.x = world.spawnLocations[enemy.spawn][1]
 		enemy.y = world.spawnLocations[enemy.spawn][2]
-		enemy.type = 'weak'
+		enemy.type = 'medium'
 
 		if enemy.type == 'weak' then
 			enemy.walkanimation = weakenemywalkanimation
@@ -811,6 +897,7 @@ function createEnemies(number)
 		enemy.punchspeed = .2
 		enemy.kickspeed = .4
 		enemy.maxspeed = 150
+		enemy.turnoffset = 20
 		enemy.debugtextloc = #enemies * 10
 		enemy.debug = true
 		enemy.speed = 400	
