@@ -32,8 +32,6 @@ end  -- End Load Function
 
 function love.update(dt)
 	--checkEnemyRemoval()
-	
-
 
     if #world.debugtext.level > 20 then
         table.remove(world.debugtext.level, 1)
@@ -46,15 +44,15 @@ function love.update(dt)
 
 	standstill:update(dt)
 	walkanimation:update(dt)
-	weakenemystandstill:update(dt)
-	weakenemywalkanimation:update(dt)
-	mediumenemystandstill:update(dt)
-	mediumenemywalkanimation:update(dt)
+	--weakenemystandstill:update(dt)
+	--weakenemywalkanimation:update(dt)
 	mediumenemyrunanimation:update(dt)
 	mediumenemystunned:update(dt)
 	mediumenemyjabbed_l1:update(dt)
-	mediumenemyjabbed_l2:update(dt)
+	--mediumenemyjabbed_l2:update(dt)
 	mediumenemystandstill:update(dt)
+	mediumenemywalkanimation:update(dt)
+	mediumenemydance:update(dt)
 
 
 
@@ -696,85 +694,23 @@ function load_graphics()
 	enemysheet = love.graphics.newImage("enemy_sheet.png")
 	background = love.graphics.newImage("Background.jpg")
 
-	enemyIdleAnim = { love.graphics.newQuad(420, 0, 50, 100, enemysheet:getWidth(), enemysheet:getHeight())	}
-	enemyWalkAnim = {
-		--Row1
-		love.graphics.newQuad(20, 0, 50, 100, enemysheet:getWidth(), enemysheet:getHeight()),  love.graphics.newQuad(120, 0, 50, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		love.graphics.newQuad(220, 0, 50, 100, enemysheet:getWidth(), enemysheet:getHeight()), love.graphics.newQuad(320, 0, 50, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		love.graphics.newQuad(420, 0, 50, 100, enemysheet:getWidth(), enemysheet:getHeight()), love.graphics.newQuad(520, 0, 50, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		love.graphics.newQuad(620, 0, 50, 100, enemysheet:getWidth(), enemysheet:getHeight()), love.graphics.newQuad(720, 0, 50, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		--Row2
-		love.graphics.newQuad(20, 112, 50, 100, enemysheet:getWidth(), enemysheet:getHeight()),	love.graphics.newQuad(120, 112, 50, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		love.graphics.newQuad(220, 112, 50, 100, enemysheet:getWidth(), enemysheet:getHeight()),love.graphics.newQuad(320, 112, 50, 100, enemysheet:getWidth(), enemysheet:getHeight())
-	}
-	enemyRunAnim = {
-		--Row2
-		love.graphics.newQuad(412, 112, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()), love.graphics.newQuad(514, 112, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		love.graphics.newQuad(620, 112, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()), love.graphics.newQuad(730, 112, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		--Row3
-		love.graphics.newQuad(20, 222, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()), love.graphics.newQuad(120, 222, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		love.graphics.newQuad(210, 220, 82, 100, enemysheet:getWidth(), enemysheet:getHeight()), love.graphics.newQuad(310, 220, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		love.graphics.newQuad(410, 220, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()), love.graphics.newQuad(510, 220, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		love.graphics.newQuad(612, 222, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()), love.graphics.newQuad(712, 224, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		--Row4
-		love.graphics.newQuad(20, 340, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()),	love.graphics.newQuad(120, 340, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		love.graphics.newQuad(220, 340, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()), love.graphics.newQuad(320, 340, 80, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		love.graphics.newQuad(411, 340, 81, 100, enemysheet:getWidth(), enemysheet:getHeight())
-	}
-	enemyStunnedAnim = {
-		--Row4
-		--love.graphics.newQuad(511, 340, 60, 100, enemysheet:getWidth(), enemysheet:getHeight()), 
-		--love.graphics.newQuad(611, 340, 60, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		--love.graphics.newQuad(711, 340, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-
-		--Row 5
-		love.graphics.newQuad(21, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		love.graphics.newQuad(121, 450, 75, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		love.graphics.newQuad(221, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		love.graphics.newQuad(321, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		love.graphics.newQuad(421, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight())
-	}
-	enemyJabbedL1 = {
-		--Row 5
-		love.graphics.newQuad(521, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()), 
-		love.graphics.newQuad(621, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		love.graphics.newQuad(721, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-
-		--Row 6		
-		--love.graphics.newQuad(721, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		love.graphics.newQuad(621, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		love.graphics.newQuad(521, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight())
-	}
-	enemyJabbedL2 = {
-		--Row 5
-		love.graphics.newQuad(521, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()), 
-		love.graphics.newQuad(621, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		love.graphics.newQuad(721, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-
-		--Row 6
-		love.graphics.newQuad(21, 560, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		love.graphics.newQuad(121, 560, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-
-		love.graphics.newQuad(21, 560, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		love.graphics.newQuad(721, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		love.graphics.newQuad(621, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-		love.graphics.newQuad(521, 450, 65, 100, enemysheet:getWidth(), enemysheet:getHeight()),
-	}
-
+	
 
 	agrid = anim8.newGrid(60, 100, charactersheet:getWidth(), charactersheet:getHeight())
-	enemygrid = anim8.newGrid(50,100, enemysheet:getWidth(), enemysheet:getHeight())
+	enemygrid = anim8.newGrid(90,100, enemysheet:getWidth(), enemysheet:getHeight())
+	
 	standstill = anim8.newAnimation(agrid(1, 1), 0.1)
 	walkanimation = anim8.newAnimation(agrid('2-7', 1), 0.1)
 	weakenemystandstill = anim8.newAnimation(agrid(1, 2), 0.1)
 	weakenemywalkanimation = anim8.newAnimation(agrid('2-7', 2), 0.1)
 	
-	mediumenemystandstill = anim8.newAnimation(enemyIdleAnim, 0.1)
-	mediumenemywalkanimation = anim8.newAnimation(enemyWalkAnim, 0.09)
-	mediumenemyrunanimation = anim8.newAnimation(enemyRunAnim, 0.09)
-	mediumenemystunned = anim8.newAnimation(enemyStunnedAnim, 0.3)
-	mediumenemyjabbed_l1 = anim8.newAnimation(enemyJabbedL1, 0.06)
-	mediumenemyjabbed_l2 = anim8.newAnimation(enemyJabbedL2, 0.06)
+	mediumenemystandstill = anim8.newAnimation(enemygrid(3,3, 2,4, 1,5, 4,3, 3,4 ), 0.3)
+	mediumenemydance = anim8.newAnimation(enemygrid('2-5',1,'2-2', 2,'3-4', 2), 0.14)
+	mediumenemyrunanimation = anim8.newAnimation(enemygrid(8,2,7,3,6,4,10,1,9,2,8,3,7,4,6,5,11,1,10,2,9,3,8,4,7,5,11,2,10,3,9,4,8,5), 0.04)
+	mediumenemywalkanimation = anim8.newAnimation(enemygrid(1,7,3,6,2,7,1,8,4,6,3,7,2,8,1,9,5,6,4,7,3,8,2,9), 0.1)
+	mediumenemystunned = anim8.newAnimation(enemygrid(11,3,10,4,9,5,11,4,10,5,11,5,1,6,2,6), 0.1)
+	mediumenemyjabbed_l1 = anim8.newAnimation(enemygrid(2,5, 5,3, 4,4, 4,4, 5,3, 2,5), 0.03)
+	mediumenemyjabbed_l2 = anim8.newAnimation(enemygrid(2,5, 5,3, 4,4, 3,5,  5,4 , 5,4,5,4,  3,5, 4,4, 5,3, 2,5), 0.03) -- 5,4's in the middle are neck snapped back
 	
 end
 
