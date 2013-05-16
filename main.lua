@@ -31,7 +31,7 @@ end  -- End Load Function
 
 
 function love.update(dt)
-	--checkEnemyRemoval()
+	checkEnemyRemoval()
 
     if #world.debugtext.level > 20 then
         table.remove(world.debugtext.level, 1)
@@ -44,15 +44,18 @@ function love.update(dt)
 
 	standstill:update(dt)
 	walkanimation:update(dt)
+	
+
+	--mediumenemyrunanimation:update(dt)
+	--mediumenemystunned:update(dt)
+	--mediumenemyjabbed_l1:update(dt)
+	--mediumenemyjabbed_l2:update(dt)
+	
+	--mediumenemywalkanimation:update(dt)
+	--mediumenemydance:update(dt)
+
 	--weakenemystandstill:update(dt)
 	--weakenemywalkanimation:update(dt)
-	mediumenemyrunanimation:update(dt)
-	mediumenemystunned:update(dt)
-	mediumenemyjabbed_l1:update(dt)
-	--mediumenemyjabbed_l2:update(dt)
-	mediumenemystandstill:update(dt)
-	mediumenemywalkanimation:update(dt)
-	mediumenemydance:update(dt)
 
 
 
@@ -103,10 +106,12 @@ function love.draw()
 	end
 
 	--Player Attacks
-	if player.isAttacking and player.isFacingRight then
-		love.graphics.print("Pow", player.x + 34, player.y)
-	elseif player.isAttacking and not player.isFacingRight then
-		love.graphics.print("Pow", player.x, player.y)
+	if player.isAttacking and player.isFacingRight and player.action == "punch" then
+		love.graphics.print("Biff", player.x + 38, player.y + player.boundingbox.offset_moveto_fist_y+3)
+	elseif player.isAttacking and not player.isFacingRight and player.action == "punch" then
+		love.graphics.print("Biff", player.x, player.y + player.boundingbox.offset_moveto_fist_y+3)
+	elseif player.isAttacking and not player.isFacingRight and player.action == "kick" then
+		--love.graphics.print("Biff", player.x + 38, player.y + player.boundingbox.offset_moveto_fist_y+3)
 	end
 	
 	--Draw Enemies
@@ -116,6 +121,10 @@ function love.draw()
 			value.standstillanimation:draw(enemysheet, value.x,value.y)
 		elseif value.animation == 'walk' then
 			value.walkanimation:draw(enemysheet, value.x, value.y)
+		elseif value.animation == 'run' then
+			value.runanimation:draw(enemysheet, value.x, value.y)
+		elseif value.animation == 'punched' then
+			value.jabbed_l1:draw(enemysheet, value.x, value.y)
 		end
 
 		if world.debug.enemies then			
@@ -123,6 +132,11 @@ function love.draw()
 				i, math.floor(value.velocity.x), math.floor(value.x), tostring(value.isFacingRight), tostring(value.isWalkFlipped)),
 				 	0, value.debugtextloc)
 			love.graphics.print("NumOfEnemies: " .. tostring(#enemies), 800, 10)
+
+			for i, enemy in ipairs(enemies) do
+				love.graphics.print(string.format("Health: %s  isPunched: %s", enemy.health, tostring(enemy.isPunched)), enemy.x-50, enemy.y)
+			end
+
 		end
 	end
 
@@ -141,11 +155,12 @@ function love.draw()
 		--Draw Enemy Entity collision boxes
 		for i, enemy in ipairs(enemies) do
 
-			enemy.boundingbox.entity_main:draw('line')
-			--enemy.boundingbox.entity_top_left:draw('line')
-			--enemy.boundingbox.entity_top_right:draw('line')
-			--enemy.boundingbox.entity_bottom_left:draw('line')
-			--enemy.boundingbox.entity_bottom_right:draw('line')
+			--enemy.boundingbox.entity_main:draw('line')
+			enemy.boundingbox.entity_top_left:draw('line')
+			enemy.boundingbox.entity_top_right:draw('line')
+			enemy.boundingbox.entity_bottom_left:draw('line')
+			enemy.boundingbox.entity_bottom_right:draw('line')
+
 			
 		end
 
@@ -214,6 +229,10 @@ function love.keypressed(key)
 	if key == "e" then
 		player.action = "punch"
 		player.energy = player.energy - 0.5
+	elseif key == "q" then
+		player.action = "kick"
+		player.energy = player.energy - 0.2
+
 	end
 
 	if key == "f" then
@@ -273,10 +292,6 @@ function love.mousepressed(x, y, button)
 	end
 end
 
-
-
-
-
 --Player Functions
 function snapPlayerBoundingBoxes()
 	
@@ -288,7 +303,7 @@ function snapPlayerBoundingBoxes()
 			player.boundingbox.entity_top_right:moveTo(player.x + player.boundingbox.offset_moveto_entity_right_x, player.y + player.boundingbox.offset_moveto_entity_top_y)
 			player.boundingbox.entity_bottom_right:moveTo(player.x + player.boundingbox.offset_moveto_entity_right_x, player.y + player.boundingbox.offset_moveto_entity_bottom_y)
 			player.boundingbox.entity_bottom_left:moveTo(player.x + player.boundingbox.offset_moveto_entity_left_x, player.y + player.boundingbox.offset_moveto_entity_bottom_y)
-			player.boundingbox.fist_box:moveTo(player.x + player.boundingbox.offset_moveto_fist_x, player.y + player.boundingbox.offset_moveto_entity_top_y - 18)
+			player.boundingbox.fist_box:moveTo(player.x + player.boundingbox.offset_moveto_fist_x, player.y + player.boundingbox.offset_moveto_fist_y*2)
 		else
 			player.boundingbox.level:moveTo(player.x + player.boundingbox.offset_moveto_level_x+20, player.y + player.boundingbox.offset_moveto_level_y)
 			player.boundingbox.entity_main:moveTo(player.x + player.boundingbox.offset_moveto_level_x + 18, player.y + player.boundingbox.offset_moveto_level_y)
@@ -296,7 +311,7 @@ function snapPlayerBoundingBoxes()
 			player.boundingbox.entity_top_right:moveTo(player.x + player.boundingbox.offset_moveto_entity_right_x+15, player.y + player.boundingbox.offset_moveto_entity_top_y)
 			player.boundingbox.entity_bottom_right:moveTo(player.x + player.boundingbox.offset_moveto_entity_right_x+15, player.y + player.boundingbox.offset_moveto_entity_bottom_y)
 			player.boundingbox.entity_bottom_left:moveTo(player.x + player.boundingbox.offset_moveto_entity_left_x+15, player.y + player.boundingbox.offset_moveto_entity_bottom_y)
-			player.boundingbox.fist_box:moveTo(player.x + 10, player.y + player.boundingbox.offset_moveto_entity_top_y - 18)
+			player.boundingbox.fist_box:moveTo(player.x + 10, player.y + player.boundingbox.offset_moveto_fist_y*2)
 		end
 end
 
@@ -352,17 +367,45 @@ function doPlayerAnimation(key,dt)
 end
 
 function playerAttack(type, dt)
+	local function isTheShapeAGhost(colliderInstance, shape)
+		for i, value in pairs(colliderInstance._active_shapes) do -- Iterate over active
+			if value == shape then --Do you find the shape?
+				return true
+			end
+		end
+
+		return false
+	end
 
 
 	if type == 'punch' and player.isAttacking == false then
 		player.isAttacking = true
 		player.animTimer = love.timer.getTime() + player.punchspeed
-		entityCollider:setSolid(player.boundingbox.fist_box)
+		
+		if not isTheShapeAGhost(entityCollider, player.boundingbox.fist_box) then
+			entityCollider:setSolid(player.boundingbox.fist_box)
+		end
+
 	elseif type == 'punch' and player.isAttacking == true and love.timer.getTime() > player.animTimer then
 		player.isAttacking = false
 		player.action = false
-		entityCollider:setGhost(player.boundingbox.fist_box)
+
+		if isTheShapeAGhost(entityCollider, player.boundingbox.fist_box) then
+			entityCollider:setGhost(player.boundingbox.fist_box)
+		end
+		
 	end
+
+	if type == 'kick' and player.isAttacking == false then
+		player.isAttacking = true
+		player.animTimer = love.timer.getTime() + player.kickspeed
+		entityCollider:setSolid(player.boundingbox.foot_box)
+	elseif type == 'punch' and player.isAttacking == true and love.timer.getTime() > player.animTimer then
+		player.isAttacking = false
+		player.action = false
+		entityCollider:setGhost(player.boundingbox.foot_box)
+	end
+
 end
 
 function doPlayerProcessing(dt)
@@ -380,8 +423,7 @@ function doPlayerProcessing(dt)
 		snapPlayerBoundingBoxes()
 	end
 	if player.velocity.x > -49 and player.velocity.x < 49 and player.velocity.x ~= 0 and player.animation == 'idle' then
-		player.velocity.x = 0
-		player.yup = true
+		player.velocity.x = 0		
 	end
 	
 
@@ -403,15 +445,15 @@ end
 function snapEnemyBoundingBoxes(index)
 	
 	if index.isFacingRight then
-		index.boundingbox.level:moveTo(index.x + index.boundingbox.offset_moveto_level_x+4, index.y + index.boundingbox.offset_moveto_level_y)
-		index.boundingbox.entity_main:moveTo(index.x + index.boundingbox.offset_moveto_level_x + 4, index.y + index.boundingbox.offset_moveto_level_y)
+		index.boundingbox.level:moveTo(index.x + index.boundingbox.offset_moveto_level_x + 2, index.y + index.boundingbox.offset_moveto_level_y)
+		index.boundingbox.entity_main:moveTo(index.x + index.boundingbox.offset_moveto_level_x + 2, index.y + index.boundingbox.offset_moveto_level_y)
 		index.boundingbox.entity_top_left:moveTo(index.x + index.boundingbox.offset_moveto_entity_left_x, index.y + index.boundingbox.offset_moveto_entity_top_y)
 		index.boundingbox.entity_top_right:moveTo(index.x + index.boundingbox.offset_moveto_entity_right_x, index.y + index.boundingbox.offset_moveto_entity_top_y)
 		index.boundingbox.entity_bottom_right:moveTo(index.x + index.boundingbox.offset_moveto_entity_right_x, index.y + index.boundingbox.offset_moveto_entity_bottom_y)
 		index.boundingbox.entity_bottom_left:moveTo(index.x + index.boundingbox.offset_moveto_entity_left_x, index.y + index.boundingbox.offset_moveto_entity_bottom_y)
 	elseif not index.isFacingRight then
-		index.boundingbox.level:moveTo(index.x + index.boundingbox.offset_moveto_level_x+20, index.y + index.boundingbox.offset_moveto_level_y)
-		index.boundingbox.entity_main:moveTo(index.x + index.boundingbox.offset_moveto_level_x + 18, index.y + index.boundingbox.offset_moveto_level_y)
+		index.boundingbox.level:moveTo(index.x + index.boundingbox.offset_moveto_level_x + 12, index.y + index.boundingbox.offset_moveto_level_y)
+		index.boundingbox.entity_main:moveTo(index.x + index.boundingbox.offset_moveto_level_x + 12, index.y + index.boundingbox.offset_moveto_level_y)
 		index.boundingbox.entity_top_left:moveTo(index.x + index.boundingbox.offset_moveto_entity_left_x+15, index.y + index.boundingbox.offset_moveto_entity_top_y)
 		index.boundingbox.entity_top_right:moveTo(index.x + index.boundingbox.offset_moveto_entity_right_x+15, index.y + index.boundingbox.offset_moveto_entity_top_y)
 		index.boundingbox.entity_bottom_right:moveTo(index.x + index.boundingbox.offset_moveto_entity_right_x+15, index.y + index.boundingbox.offset_moveto_entity_bottom_y)
@@ -429,7 +471,6 @@ function doEnemyProcessing(dt)
 		end
 
 		if enemyindex.velocity.x < -50 then
-			--enemyindex.velocity.x = enemyindex.velocity.x + enemyindex.speed*dt
 			enemyindex.velocity.x = world.windResistance*dt*enemyindex.stoppingSpeed + enemyindex.velocity.x
 			enemyindex.x = enemyindex.x + enemyindex.velocity.x*dt			
 		end
@@ -449,26 +490,60 @@ function doEnemyProcessing(dt)
 
 	
 	for i, enemyindex in ipairs(enemies) do
-		if enemyindex.isFacingRight and enemyindex.isMoving then  -- Enemy should move Right
+		if enemyindex.isFacingRight and enemyindex.isMoving then  -- Enemy walking right
 			if enemyindex.velocity.x < enemyindex.maxspeed then
+				enemyindex.isRunning = false
 				enemyindex.velocity.x = enemyindex.velocity.x + enemyindex.speed*dt
+				doEnemyAnimation("walk", enemyindex)
+			elseif enemyindex.velocity.x >= enemyindex.maxspeed and enemyindex.velocity.x < enemyindex.maxspeed*2  and enemyindex.wantsToRun then-- Running		
+				enemyindex.isRunning = true
+				enemyindex.velocity.x = enemyindex.velocity.x + enemyindex.speed*dt
+				doEnemyAnimation("run", enemyindex)
 			end
-			doEnemyAnimation("walk", enemyindex, dt)
+
+			if not enemyindex.isRunning then
+				enemyindex.walkanimation:update(dt)
+			elseif enemyindex.isRunning then
+				enemyindex.runanimation:update(dt)
+			end
+			
 		end
 		
 		if not enemyindex.isFacingRight and enemyindex.isMoving then -- Enemy should move Left
 			if enemyindex.velocity.x > -enemyindex.maxspeed then
+				enemyindex.isRunning = false
 				enemyindex.velocity.x = enemyindex.velocity.x - enemyindex.speed*dt
+				doEnemyAnimation("walk", enemyindex, dt)
+			elseif enemyindex.velocity.x <= -enemyindex.maxspeed and enemyindex.velocity.x > -enemyindex.maxspeed*2  and enemyindex.wantsToRun then-- Running		
+				enemyindex.isRunning = true
+				enemyindex.velocity.x = enemyindex.velocity.x - enemyindex.speed*dt
+				doEnemyAnimation("run", enemyindex, dt)
 			end
-			doEnemyAnimation("walk", enemyindex, dt)
-		end
 
+			if not enemyindex.isRunning then
+				enemyindex.walkanimation:update(dt)
+			elseif enemyindex.isRunning then
+				enemyindex.runanimation:update(dt)
+			end
+		end
 
 		applyForces(dt,enemyindex)
+
 		if not enemyindex.isMoving then
-			enemyindex.animation = 'idle'
+			doEnemyAnimation("idle", enemyindex, dt)
+			enemyindex.standstillanimation:update(dt)
 		end
 
+		if enemyindex.isPunched then
+			doEnemyAnimation("punched", enemyindex)
+			enemyindex.jabbed_l1:update(dt)
+			if enemyindex.jabbed_l1.status == 'paused' then
+				enemyindex.isPunched = false
+				doEnemyAnimation('idle', enemyindex)
+				enemyindex.jabbed_l1:resume()
+			end
+		end
+		
 		snapEnemyBoundingBoxes(enemyindex)
 	end  --Breaking out of enemies container
 
@@ -480,31 +555,45 @@ function doEnemyAnimation(action, indexie)
 			indexie.animation = 'walk'
 		end
 		
-		if action == "walk" then
-			if indexie.isFacingRight == true and indexie.isWalkFlipped then
-				indexie.x = indexie.x + indexie.turnoffset
-				indexie.walkanimation:flipH()
-				indexie.standstillanimation:flipH()
-				indexie.isWalkFlipped = false
-			elseif not indexie.isFacingRight and not indexie.isWalkFlipped then
-				indexie.x = indexie.x - indexie.turnoffset
-				indexie.walkanimation:flipH()
-				indexie.standstillanimation:flipH()
-				indexie.isWalkFlipped = true
-			end
+		
+		if indexie.isFacingRight == true and indexie.isWalkFlipped then
+			indexie.x = indexie.x + indexie.turnoffset
+			indexie.walkanimation:flipH()
+			indexie.standstillanimation:flipH()
+			indexie.runanimation:flipH()
+			indexie.isWalkFlipped = false
+		elseif not indexie.isFacingRight and not indexie.isWalkFlipped then
+			indexie.x = indexie.x - indexie.turnoffset
+			indexie.walkanimation:flipH()
+			indexie.standstillanimation:flipH()
+			indexie.runanimation:flipH()
+			indexie.isWalkFlipped = true
 		end
+		
 
 		if action == 'fall' then
 			indexie.animation = 'idle'
 		end
 
 		if action == 'idle' then
-			indexie.animation = 'idle'
+			indexie.animation = 'idle'	
+		end
+
+		if action == 'run' then
+			indexie.animation = 'run'
+		end
+
+		if action == 'punched' then
+			indexie.animation = 'punched'
 		end
 end
 
 function checkEnemyRemoval()
 	for i, value in ipairs(enemies) do
+
+		if value.health <= 0 then
+			value.isAlive = false
+		end
 
 		if value.x > screenwidth or value.x < 0 then
 			value.isAlive = false
@@ -512,9 +601,10 @@ function checkEnemyRemoval()
 			value.isAlive = false
 		end
 
+		--Zero out the variables, remove the bounding boxes and kill the table reference for the enemy
 		if value.isAlive == false then
 			for is, col_var in pairs(value.boundingbox.container) do
-				entityCollider:remove(col_var)
+				entityCollider:remove(col_var)				
 			end
 			Collider:remove(value.boundingbox.level)
 		
@@ -625,12 +715,12 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 							player.velocity.x = 0
 							player.velocity.x = player.velocity.x + mtv_x
 							snapPlayerBoundingBoxes()						
-							--world.debugtext.entity[#world.debugtext.entity+1] = string.format("PColliding. mtv/Vel = (%s, %s)",math.floor(-mtv_x), enemyIndex.velocity.x)
+							world.debugtext.entity[#world.debugtext.entity+1] = string.format("PColliding. mtv/Vel = (%s, %s)",math.floor(-mtv_x), enemyIndex.velocity.x)
 						end
 					end
 			end
-		elseif isEnemy then
-			if checkCollisionContainers({enemyIndex.boundingbox.entity_main}, isEnemy) then
+		elseif isEnemy then  -- If an enemy has come in contact with something
+			if checkCollisionContainers({enemyIndex.boundingbox.entity_main}, isEnemy) then  --If that something is another enemies bounding box
 				if isEnemy2 then
 					enemyIndex.velocity.x = 0						
 					enemyIndex.velocity.x = enemyIndex.velocity.x + mtv_x*dt+4
@@ -643,14 +733,23 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 			end
 		end
 
-		if checkCollisionContainers({player.boundingbox.fist_box}, isPlayer) then
+		if checkCollisionContainers({player.boundingbox.fist_box}, isPlayer) then -- If the punching box comes in contact with something
 				
-			if isEnemy then
+			if isEnemy then  -- If that something happens to be an ENEMY!!!
 				if enemyIndex.boundingbox.entity_top_left or enemyIndex.boundingbox.entity_top_right then
-					world.debugtext.entity[#world.debugtext.entity+1] = tostring("Kapow")
+					
+					if not enemyIndex.isPunched and enemyIndex.isAlive then --If they're not already being punched
+						enemyIndex.isPunched = true
+						enemyIndex.health = enemyIndex.health - player.punchDamage
+						entityCollider:setGhost(player.boundingbox.fist_box) -- Turn the collision box off until activated by punch again				
+					end
+
 				end
 			end
 		end
+
+
+
 
 	end
 
@@ -709,7 +808,7 @@ function load_graphics()
 	mediumenemyrunanimation = anim8.newAnimation(enemygrid(8,2,7,3,6,4,10,1,9,2,8,3,7,4,6,5,11,1,10,2,9,3,8,4,7,5,11,2,10,3,9,4,8,5), 0.04)
 	mediumenemywalkanimation = anim8.newAnimation(enemygrid(1,7,3,6,2,7,1,8,4,6,3,7,2,8,1,9,5,6,4,7,3,8,2,9), 0.1)
 	mediumenemystunned = anim8.newAnimation(enemygrid(11,3,10,4,9,5,11,4,10,5,11,5,1,6,2,6), 0.1)
-	mediumenemyjabbed_l1 = anim8.newAnimation(enemygrid(2,5, 5,3, 4,4, 4,4, 5,3, 2,5), 0.03)
+	mediumenemyjabbed_l1 = anim8.newAnimation(enemygrid(2,5, 5,3, 4,4, 4,4, 5,3, 2,5), 0.03, 'pause')	
 	mediumenemyjabbed_l2 = anim8.newAnimation(enemygrid(2,5, 5,3, 4,4, 3,5,  5,4 , 5,4,5,4,  3,5, 4,4, 5,3, 2,5), 0.03) -- 5,4's in the middle are neck snapped back
 	
 end
@@ -719,6 +818,12 @@ function create_player()
 	player.yup = false
 	player.x = 300
 	player.y = 400
+
+	player.punchDamage = 25
+	player.punchMultiplier = 1
+	player.kickDamage = 12.5
+	player.kickMultipler = 1
+
 	player.isOnGround = false
 	player.action = false
 	player.speed = 400
@@ -742,6 +847,7 @@ function create_player()
 	--Offset measurements for snapping the bounding box to the player
 	player.turnoffset = 20
 	player.boundingbox.offset_moveto_fist_x = 50
+	player.boundingbox.offset_moveto_fist_y = 10
 	player.boundingbox.fist_color = 120
 	player.boundingbox.offset_moveto_entity_left_x = 15
 	player.boundingbox.offset_moveto_entity_top_y = 25
@@ -764,7 +870,7 @@ function create_player()
 																		player.y + player.boundingbox.offset_moveto_level_y, player.boundingbox.entity_sizeX, player.boundingbox.entity_sizeY )
 	player.boundingbox.entity_bottom_left = entityCollider:addRectangle(player.x + player.boundingbox.offset_moveto_entity_left_x/2, 
 																		player.y + player.boundingbox.offset_moveto_level_y, player.boundingbox.entity_sizeX, player.boundingbox.entity_sizeY )
-	player.boundingbox.fist_box = entityCollider:addRectangle(player.x + player.boundingbox.offset_moveto_fist_x, player.y, 20, 15)
+	player.boundingbox.fist_box = entityCollider:addRectangle(player.x + player.boundingbox.offset_moveto_fist_x, player.y + player.boundingbox.offset_moveto_fist_y, 20, 15)
 	--Ghost fist box until player attacks - prevents needless collision calls
 	entityCollider:setGhost(player.boundingbox.fist_box)
 	player.boundingbox.container = {player.boundingbox.entity_top_left, player.boundingbox.entity_top_right,
@@ -786,8 +892,8 @@ function create_world()
 
 	--Debug flags
 	world.debug = {}
-	world.debug.player = true
-	world.debug.enemies = true
+	world.debug.player = false
+	world.debug.enemies = false
 	world.debug.collision_level = false
 	world.debug.collision_entity = false
 
@@ -809,14 +915,15 @@ function create_world()
 							--{403, 510}, 
 							--{993, 227},
 							{191, 497} }
+
+	--Collider:setGhost(world.rightwall)
 end
 
 function createEnemies(number)
 	
 	
 	for i = 1, number, 1 do 
-		enemy = {}
-		enemy.health = 100
+		local enemy = {}
 		math.random()
 		enemy.spawn = math.random(#world.spawnLocations)
 		enemy.x = world.spawnLocations[enemy.spawn][1]
@@ -824,46 +931,68 @@ function createEnemies(number)
 		enemy.type = 'medium'
 
 		if enemy.type == 'weak' then
-			enemy.walkanimation = weakenemywalkanimation
-			enemy.standstillanimation = weakenemystandstill
+			enemy.health = 100
+			enemy.walkanimation = weakenemywalkanimation:clone()
+			enemy.standstillanimation = weakenemystandstill:clone()
 		elseif enemy.type == 'medium' then
-			enemy.walkanimation = mediumenemywalkanimation
-			enemy.standstillanimation = mediumenemystandstill
+			enemy.health = 150
+			enemy.walkanimation = mediumenemywalkanimation:clone()
+			enemy.standstillanimation = mediumenemystandstill:clone()
+			enemy.runanimation = mediumenemyrunanimation:clone()
+			enemy.stunned = mediumenemystunned:clone()
+			enemy.jabbed_l1 = mediumenemyjabbed_l1:clone()
+			enemy.jabbed_l2 = mediumenemyjabbed_l2:clone()
+		elseif enemy.type == 'hard' then
+			enemy.health = 250
+			enemy.walkanimation = hardenemywalkanimation:clone()
+			enemy.standstillanimation = hardenemystandstill:clone()
 		end
 		enemy.punchspeed = .2
 		enemy.kickspeed = .4
 		enemy.maxspeed = 150
-		enemy.turnoffset = 20
+		
 		enemy.debugtextloc = #enemies * 10
 		enemy.debug = true
 		enemy.speed = 400	
 		enemy.stoppingSpeed = 12
+
+		--Enemy States
 		enemy.isFacingRight = true
-		enemy.action = 'd'
+		enemy.action = false
 		enemy.isMoving = false
 		enemy.isWalkFlipped = false
 		enemy.isAttacking = false
 		enemy.isOnGround = false
-		enemy.velocity = {}
-		enemy.velocity.x = 0
-		enemy.velocity.y = 0
-		enemy.isOnGround = false
-		enemy.animation = 'idle'
 		enemy.isAlive = true
 		enemy.isPunching = false
 		enemy.isKicking = false
 		enemy.isShooting = false
-		enemy.animTimer = 0
-		enemy.boundingbox = {}
+		enemy.isOnGround = false
+		enemy.isRunning = false
+		enemy.isPunched = false
+
+
+
+		--Enemy AI States
+		enemy.wantsToRun = true
+
+		enemy.velocity = {}
+		enemy.velocity.x = 0
+		enemy.velocity.y = 0
 		
+		enemy.animation = 'idle'
+		
+		enemy.animTimer = 0
+		enemy.turnoffset = 13
+		enemy.boundingbox = {}
 		enemy.boundingbox.offset_moveto_entity_left_x = 25
 		enemy.boundingbox.offset_moveto_entity_top_y = 25
 		enemy.boundingbox.offset_moveto_entity_right_x = 40 
 		enemy.boundingbox.offset_moveto_entity_bottom_y = 75
-		enemy.boundingbox.offset_moveto_level_x = 18
+		enemy.boundingbox.offset_moveto_level_x = 39
 		enemy.boundingbox.offset_moveto_level_y = 50
 		enemy.boundingbox.level_sizeX = 38
-		enemy.boundingbox.level_sizeY = 100
+		enemy.boundingbox.level_sizeY = 85
 		enemy.boundingbox.entity_sizeX = 15
 		enemy.boundingbox.entity_sizeY = 50
 
@@ -871,6 +1000,7 @@ function createEnemies(number)
 		enemy.boundingbox.level = Collider:addRectangle(enemy.x, enemy.y, enemy.boundingbox.level_sizeX, enemy.boundingbox.level_sizeY)
 		--Bounding box for entity -> entity collision (wraps around the enemys body)
 		enemy.boundingbox.entity_main = entityCollider:addRectangle(enemy.x + 4, enemy.y, enemy.boundingbox.level_sizeX + 2, enemy.boundingbox.level_sizeY)
+		--Boundingboxes for hit/attack detection
 		enemy.boundingbox.entity_top_left = entityCollider:addRectangle(enemy.x + enemy.boundingbox.offset_moveto_entity_left_x/2, enemy.y, enemy.boundingbox.entity_sizeX, enemy.boundingbox.entity_sizeY )
 		enemy.boundingbox.entity_top_right = entityCollider:addRectangle(enemy.x + enemy.boundingbox.offset_moveto_entity_left_x, enemy.y, enemy.boundingbox.entity_sizeX, enemy.boundingbox.entity_sizeY )
 		enemy.boundingbox.entity_bottom_right = entityCollider:addRectangle(enemy.x + enemy.boundingbox.offset_moveto_entity_left_x, 

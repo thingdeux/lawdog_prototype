@@ -1,0 +1,61 @@
+TODO
+
+entityCollider._ghost_shapes
+Current Bugs
+
+--Player y collision with entities
+--EntityBoundingboxes overlap and player will get stuck in them...has to slide free.
+
+
+Currently Implementing:
+	Attacks  (in order)
+		Kick
+		Grab
+		Throw
+
+
+*---------------------------------------*
+
+
+[Enhancements]
+*Order code into more manageable chunk files
+
+*Player*
+	- Implement attacks
+		*Punching
+		*Kicking
+		*Throwing
+		*Grabbing
+
+*Enemies*
+	- Implement rudimentary AI
+		*Block?
+		*Try to attack back
+
+
+
+
+
+
+
+
+
+
+
+[Completed]
+05/15/13
+Implemented Punch / Enemy reaction to punch
+Implemented walk to run animation / functionality.
+-Weird bug when changing status of all enemies - changes those that don't need changes
+
+
+05/14/13
+-Implemented new Spritesheet - "wasted" time setting up each keyframe due to a mis-aligned spritesheet.  Eventually received all of the individual images from Joe and used spritesheet maker to create an aligned sheet.  Setup animation and grids with new sheet.
+-- Need to fix collisions between entities - does not work on enemy v. enemy when colliding with the back
+
+05/13/13
+- Wind resistance too strong initially - pushes an idle character before speed is gained.  Maybe limit resistance to after 30 or so speed gained?*Fixed
+-Walking isn't working *just* right, too much sliding*Fixed (For now)
+-Refactor enemy code - Enemy won't walk to the left properly
+
+
