@@ -43,8 +43,13 @@ Currently Implementing:
 
 
 [Completed]
+05/16/13
+Refactored enemy animation system to make flipping take less manual labor.
+Implemented shin kicking animation and kicking collision detection and states.
+
+
 05/15/13
-Implemented Punch / Enemy reaction to punch
+Implemented jab / Enemy reaction to punch
 Implemented walk to run animation / functionality.
 -Weird bug when changing status of all enemies - changes those that don't need changes
 
