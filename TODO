@@ -9,7 +9,6 @@ Current Bugs
 
 Currently Implementing:
 	Attacks  (in order)
-		Kick
 		Grab
 		Throw
 
@@ -43,6 +42,12 @@ Currently Implementing:
 
 
 [Completed]
+05/18/13
+Refactored attack logic - added Hook
+
+05/17/13
+No Progress - OS crashed - rebuilt
+
 05/16/13
 Refactored enemy animation system to make flipping take less manual labor.
 Implemented shin kicking animation and kicking collision detection and states.
