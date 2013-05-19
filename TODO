@@ -1,6 +1,5 @@
 TODO
 
-entityCollider._ghost_shapes
 Current Bugs
 
 --Player y collision with entities
@@ -8,9 +7,8 @@ Current Bugs
 
 
 Currently Implementing:
-	Attacks  (in order)
-		Grab
-		Throw
+
+	AI
 
 
 *---------------------------------------*
@@ -21,8 +19,6 @@ Currently Implementing:
 
 *Player*
 	- Implement attacks
-		*Punching
-		*Kicking
 		*Throwing
 		*Grabbing
 
@@ -42,8 +38,12 @@ Currently Implementing:
 
 
 [Completed]
+5/19/13
+*Removing entity Collision in lieu of redesign - Fixed push
+
+
 05/18/13
-Refactored attack logic - added Hook
+Added Front Kick and Hook animations and functionality.  Enemies push each other when kicked. Refactored player attack logic.
 
 05/17/13
 No Progress - OS crashed - rebuilt

@@ -137,7 +137,7 @@ function love.draw()
 
 			for i, enemy in ipairs(enemies) do
 				--love.graphics.print(string.format("Health: %s  isDekced: %s", enemy.health, tostring(enemy.isDecked)), enemy.x-50, enemy.y)
-				love.graphics.print(string.format("State: %s  Velocity.x: %s", enemy.animation_state, tostring(enemy.velocity.x)), enemy.x-50, enemy.y)
+				love.graphics.print(string.format("Health: %s  Velocity.x: %s", tostring(enemy.health), tostring(enemy.velocity.x)), enemy.x-50, enemy.y)
 			end
 
 		end
@@ -148,8 +148,8 @@ function love.draw()
 		love.graphics.setColor(255,255,12, 255)
 		player.boundingbox.entity_main:draw('line')
 		love.graphics.setColor(255,player.boundingbox.fist_color,player.boundingbox.fist_color, 255)
-		player.boundingbox.fist_box:draw('line')
-		player.boundingbox.foot_box:draw('line')
+		--player.boundingbox.fist_box:draw('line')
+		--player.boundingbox.foot_box:draw('line')
 		love.graphics.setColor(255,255,255, 255)
 		--player.boundingbox.entity_top_left:draw('line')
 		--player.boundingbox.entity_top_right:draw('line')
@@ -159,11 +159,11 @@ function love.draw()
 		--Draw Enemy Entity collision boxes
 		for i, enemy in ipairs(enemies) do
 
-			--enemy.boundingbox.entity_main:draw('line')
-			enemy.boundingbox.entity_top_left:draw('line')
-			enemy.boundingbox.entity_top_right:draw('line')
-			enemy.boundingbox.entity_bottom_left:draw('line')
-			enemy.boundingbox.entity_bottom_right:draw('line')
+			enemy.boundingbox.entity_main:draw('line')
+			--enemy.boundingbox.entity_top_left:draw('line')
+			--enemy.boundingbox.entity_top_right:draw('line')
+			--enemy.boundingbox.entity_bottom_left:draw('line')
+			--enemy.boundingbox.entity_bottom_right:draw('line')
 
 			
 		end
@@ -785,55 +785,67 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 		if isPlayer then
 			
 			--If the players entity body bounding box collides with something
-			if checkCollisionContainers({player.boundingbox.entity_main}, isPlayer) then
-					--If that something is an enemy
-					if isEnemy then
-						--If it collides with the enemies body bounding box
-						if checkCollisionContainers({enemyIndex.boundingbox.entity_main}, isEnemy) then
-							enemyIndex.velocity.x = 0						
+			if checkCollisionContainers({player.boundingbox.entity_main}, isPlayer) then					
+					if isEnemy then    --If that something is an enemy
+						if checkCollisionContainers({enemyIndex.boundingbox.entity_main}, isEnemy) then --If it collides with the enemies body bounding box
+							enemyIndex.velocity.x = 0			
 							enemyIndex.velocity.x = enemyIndex.velocity.x + -mtv_x
 							snapEnemyBoundingBoxes(enemyIndex)
 					
 							player.velocity.x = 0
+							if mtv_x > 4 then
+								player.x = player.x + mtv_x*dt
+							elseif mtv_x < -4 then
+								player.x = player.x - mtv_x*dt
+							end
 							player.velocity.x = player.velocity.x + mtv_x
-							snapPlayerBoundingBoxes()											
+							snapPlayerBoundingBoxes()				
 						end
 					end
 			end
 		elseif isEnemy then  -- If an enemy has come in contact with something
 			if checkCollisionContainers({enemyIndex.boundingbox.entity_main}, isEnemy) then  --If that something is another enemies bounding box
 				if isEnemy2 then
-					enemyIndex.velocity.x = 0						
-					enemyIndex.velocity.x = enemyIndex.velocity.x + mtv_x*dt+4
-					snapEnemyBoundingBoxes(enemyIndex)
 
-					enemyIndex2.velocity.x = 0						
-					enemyIndex2.velocity.x = enemyIndex2.velocity.x + -mtv_x*dt-4
-					snapEnemyBoundingBoxes(enemyIndex2)
-					--world.debugtext.entity[#world.debugtext.entity+1] = string.format("isEnemy:  - isEnemy2:  = (%s, %s)",math.floor(-mtv_x), enemyIndex.velocity.x)
-					
-					if enemyIndex.animation_state == 'frontkicked' then
-						world.debugtext.entity[#world.debugtext.entity+1] = string.format("isEnemy: %s - isEnemy2:  %s ",tostring(enemyIndex.reference), tostring(enemyIndex2.reference))
-						world.debugtext.entity[#world.debugtext.entity+1] = string.format("VelX: %s",tostring(enemyIndex.velocity.x))
+						enemyIndex.velocity.x = 0						
+						enemyIndex.velocity.x = enemyIndex.velocity.x + mtv_x*dt+4
+						snapEnemyBoundingBoxes(enemyIndex)
+
+						enemyIndex2.velocity.x = 0						
+						enemyIndex2.velocity.x = enemyIndex2.velocity.x + -mtv_x*dt-4
+						snapEnemyBoundingBoxes(enemyIndex2)
+				
+					if enemyIndex.animation_state == 'frontkicked' then  --
+						--world.debugtext.entity[#world.debugtext.entity+1] = string.format("isEnemy: %s - isEnemy2:  %s ",tostring(enemyIndex.reference), tostring(enemyIndex2.reference))		
+						enemyIndex2.velocity.x = enemyIndex.velocity.x
 						
 						if enemyIndex.velocity.x > 0 then
+							world.debugtext.entity[#world.debugtext.entity+1] = string.format("ShiftingLeft: %s - isEnemy2:  %s ",tostring(enemyIndex.reference), tostring(enemyIndex2.reference))
 							enemyIndex2.velocity.x = enemyIndex2.velocity.x - 150
+							snapEnemyBoundingBoxes(enemyIndex2)
+							snapEnemyBoundingBoxes(enemyIndex)
 						elseif enemyIndex.velocity.x < 0 then
+							world.debugtext.entity[#world.debugtext.entity+1] = string.format("ShiftingRight: %s - isEnemy2:  %s ",tostring(enemyIndex.reference), tostring(enemyIndex2.reference))
 							enemyIndex2.velocity.x = enemyIndex2.velocity.x + 150
+							snapEnemyBoundingBoxes(enemyIndex2)
+							snapEnemyBoundingBoxes(enemyIndex)
 						end
 					elseif enemyIndex2.animation_state == 'frontkicked' then
-						world.debugtext.entity[#world.debugtext.entity+1] = string.format("isEnemy: %s - isEnemy2:  %s ",tostring(enemyIndex.reference), tostring(enemyIndex2.reference))
-						world.debugtext.entity[#world.debugtext.entity+1] = string.format("VelX: %s",tostring(enemyIndex2.velocity.x))
+					
 						enemyIndex.velocity.x = enemyIndex2.velocity.x
 						
 						if enemyIndex2.velocity.x > 0 then
 							enemyIndex.velocity.x = enemyIndex.velocity.x - 150
+							enemyIndex.health = enemyIndex.health - 50*dt
+							snapEnemyBoundingBoxes(enemyIndex2)
+							snapEnemyBoundingBoxes(enemyIndex)
 						elseif enemyIndex2.velocity.x < 0 then
 							enemyIndex.velocity.x = enemyIndex.velocity.x + 150
+							enemyIndex.health = enemyIndex.health - 50*dt
+							snapEnemyBoundingBoxes(enemyIndex2)
+							snapEnemyBoundingBoxes(enemyIndex)
 						end
 					end
-
-
 				end
 			end
 		end
@@ -867,14 +879,16 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 			if isEnemy then  -- If that something happens to be an ENEMY!!!
 				if checkCollisionContainers({enemyIndex.boundingbox.entity_bottom_left,enemyIndex.boundingbox.entity_bottom_right}, isEnemy) then --If you're hitting their bottom bounding boxes
 					
-					if not enemyIndex.isKicked and enemyIndex.isAlive and player.action == "kick" then --If they're not already being punched
+					if not enemyIndex.isKicked and enemyIndex.isAlive and player.action == "kick" then --If they're not already being kicked and the player is shin kicking
 						enemyIndex.isKicked = true
 						enemyIndex.health = enemyIndex.health - player.kickDamage
-						entityCollider:setGhost(player.boundingbox.foot_box) -- Turn the collision box off until activated by punch again	
-					elseif not enemyIndex.isFrontKicked and enemyIndex.isAlive and player.action == "frontkick" then --If they're not already being punched
+						entityCollider:setGhost(player.boundingbox.foot_box) -- Turn the collision box off until activated by kick again	
+
+					elseif not enemyIndex.isFrontKicked and enemyIndex.isAlive and player.action == "frontkick" then
 						enemyIndex.isFrontKicked = true
 						enemyIndex.health = enemyIndex.health - (player.kickDamage - 6)
-						entityCollider:setGhost(player.boundingbox.foot_box) -- Turn the collision box off until activated by punch again
+						entityCollider:setGhost(player.boundingbox.foot_box) -- Turn the collision box off until you kick again
+						
 						if checkCollisionContainers({enemyIndex.boundingbox.entity_bottom_right}, isEnemy) then  --If you front kick them on the right they'll go left...
 							enemyIndex.velocity.x = enemyIndex.velocity.x - 480	
 							enemyIndex.velocity.y = enemyIndex.velocity.y - 5
@@ -1106,8 +1120,8 @@ function createEnemies(number)
 			enemy.animation.walkanimation = hardenemywalkanimation:clone()
 			enemy.animation.standstillanimation = hardenemystandstill:clone()
 		end
-		enemy.jabspeed = .2
-		enemy.kickspeed = .4
+		enemy.jabspeed = .1
+		enemy.kickspeed = .3
 		enemy.maxspeed = 150
 		
 		enemy.debugtextloc = #enemies * 10
