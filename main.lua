@@ -1,5 +1,7 @@
 local anim8 = require ("anim8")
 HC = require 'hardoncollider'
+local AI = require ("ai")
+local enemies = require("enemies")
 
 function love.load()
 	--ScreenWidth
@@ -25,13 +27,15 @@ function love.load()
 
 	--Create Enemies Table
 	enemies = {}
+	
+	
 end  -- End Load Function
 
 
 
 
 function love.update(dt)
-	checkEnemyRemoval()
+	checkEnemyRemoval(enemies)
 
     if #world.debugtext.level > 20 then
         table.remove(world.debugtext.level, 1)
@@ -63,7 +67,7 @@ function love.update(dt)
 
 	
 	doPlayerProcessing(dt)
-	doEnemyProcessing(dt)
+	doEnemyProcessing(dt, enemies)
 	Collider:update(dt)
     entityCollider:update(dt)
 
@@ -81,7 +85,7 @@ function love.draw()
 		love.graphics.print("AnimTimer: " .. tostring(player.animTimer), 340,50)
 		love.graphics.print("isAttacking: " .. tostring(player.isAttacking), 340,60)
 		love.graphics.print("Player X: " .. tostring(player.x) .. "Player Y: " .. tostring(player.y), 340,70)
-		love.graphics.print("Player Yup: " .. tostring(player.yup), 340,80, math.rad(30))
+		love.graphics.print("Player Yup: " .. tostring(player.yup), 340,80, math.rad(30))		
 	end
 
 	--Draw Player
@@ -112,6 +116,7 @@ function love.draw()
 	
 	--Draw Enemies
 	for i, value in ipairs(enemies) do
+
 		
 		if value.animation_state == 'idle' then
 			value.animation.standstillanimation:draw(enemysheet, value.x,value.y)
@@ -129,16 +134,14 @@ function love.draw()
 			value.animation.frontkick_l1:draw(enemysheet, value.x, value.y)
 		end
 
+
+
 		if world.debug.enemies then			
 			love.graphics.print(string.format("Enemy (%s): VelX: %s - X: %s - facingRight: %s - isAnimationFlipped: %s", 
 				i, math.floor(value.velocity.x), math.floor(value.x), tostring(value.isFacingRight), tostring(value.isAnimationFlipped)),
 				 	0, value.debugtextloc)
 			love.graphics.print("NumOfEnemies: " .. tostring(#enemies), 800, 10)
-
-			for i, enemy in ipairs(enemies) do
-				--love.graphics.print(string.format("Health: %s  isDekced: %s", enemy.health, tostring(enemy.isDecked)), enemy.x-50, enemy.y)
-				love.graphics.print(string.format("Health: %s  Velocity.x: %s", tostring(enemy.health), tostring(enemy.velocity.x)), enemy.x-50, enemy.y)
-			end
+			love.graphics.print(string.format("DisX: %s DisY: %s", tostring(value.player_tracker.distanceToPlayer_x), tostring(value.player_tracker.distanceToPlayer_y)), value.x-50, value.y)
 
 		end
 	end
@@ -160,6 +163,7 @@ function love.draw()
 		for i, enemy in ipairs(enemies) do
 
 			enemy.boundingbox.entity_main:draw('line')
+
 			--enemy.boundingbox.entity_top_left:draw('line')
 			--enemy.boundingbox.entity_top_right:draw('line')
 			--enemy.boundingbox.entity_bottom_left:draw('line')
@@ -472,235 +476,7 @@ function doPlayerProcessing(dt)
 	
 end
 
---Enemy Functions
-function snapEnemyBoundingBoxes(index)
-	
-	if index.isFacingRight then
-		index.boundingbox.level:moveTo(index.x + index.boundingbox.offset_moveto_level_x + 2, index.y + index.boundingbox.offset_moveto_level_y)
-		index.boundingbox.entity_main:moveTo(index.x + index.boundingbox.offset_moveto_level_x + 2, index.y + index.boundingbox.offset_moveto_level_y)
-		index.boundingbox.entity_top_left:moveTo(index.x + index.boundingbox.offset_moveto_entity_left_x, index.y + index.boundingbox.offset_moveto_entity_top_y)
-		index.boundingbox.entity_top_right:moveTo(index.x + index.boundingbox.offset_moveto_entity_right_x, index.y + index.boundingbox.offset_moveto_entity_top_y)
-		index.boundingbox.entity_bottom_right:moveTo(index.x + index.boundingbox.offset_moveto_entity_right_x, index.y + index.boundingbox.offset_moveto_entity_bottom_y)
-		index.boundingbox.entity_bottom_left:moveTo(index.x + index.boundingbox.offset_moveto_entity_left_x, index.y + index.boundingbox.offset_moveto_entity_bottom_y)
-	elseif not index.isFacingRight then
-		index.boundingbox.level:moveTo(index.x + index.boundingbox.offset_moveto_level_x + 12, index.y + index.boundingbox.offset_moveto_level_y)
-		index.boundingbox.entity_main:moveTo(index.x + index.boundingbox.offset_moveto_level_x + 12, index.y + index.boundingbox.offset_moveto_level_y)
-		index.boundingbox.entity_top_left:moveTo(index.x + index.boundingbox.offset_moveto_entity_left_x+15, index.y + index.boundingbox.offset_moveto_entity_top_y)
-		index.boundingbox.entity_top_right:moveTo(index.x + index.boundingbox.offset_moveto_entity_right_x+15, index.y + index.boundingbox.offset_moveto_entity_top_y)
-		index.boundingbox.entity_bottom_right:moveTo(index.x + index.boundingbox.offset_moveto_entity_right_x+15, index.y + index.boundingbox.offset_moveto_entity_bottom_y)
-		index.boundingbox.entity_bottom_left:moveTo(index.x + index.boundingbox.offset_moveto_entity_left_x+15, index.y + index.boundingbox.offset_moveto_entity_bottom_y)
 
-	end
-end
-
-function doEnemyProcessing(dt)
-
-	local function applyForces(dt,enemyindex)
-		if enemyindex.velocity.x > 50 then
-			enemyindex.velocity.x = -world.windResistance*dt*enemyindex.stoppingSpeed + enemyindex.velocity.x
-			enemyindex.x = enemyindex.x + enemyindex.velocity.x*dt			
-		end
-
-		if enemyindex.velocity.x < -50 then
-			enemyindex.velocity.x = world.windResistance*dt*enemyindex.stoppingSpeed + enemyindex.velocity.x
-			enemyindex.x = enemyindex.x + enemyindex.velocity.x*dt			
-		end
-
-		if enemyindex.velocity.x > -49 and enemyindex.velocity.x < 49 and enemyindex.velocity.x ~= 0 and enemyindex.animation_state == 'idle' then
-			enemyindex.velocity.x = 0
-		end
-
-		if not enemyindex.isOnGround then
-
-			if enemyindex.velocity.y < 20 then					
-				enemyindex.velocity.y = enemyindex.velocity.y + world.gravity*dt
-			end
-			enemyindex.y = enemyindex.y + enemyindex.velocity.y
-			doEnemyAnimation('fall', enemyindex)
-		end
-	end
-
-	
-	for i, enemyindex in ipairs(enemies) do
-		if enemyindex.isFacingRight and enemyindex.isMoving then  -- Enemy walking right
-			if enemyindex.velocity.x < enemyindex.maxspeed then
-				enemyindex.isRunning = false
-				enemyindex.velocity.x = enemyindex.velocity.x + enemyindex.speed*dt
-				doEnemyAnimation("walk", enemyindex)
-			elseif enemyindex.velocity.x >= enemyindex.maxspeed and enemyindex.velocity.x < enemyindex.maxspeed*2  and enemyindex.wantsToRun then-- Running		
-				enemyindex.isRunning = true
-				enemyindex.velocity.x = enemyindex.velocity.x + enemyindex.speed*dt
-				doEnemyAnimation("run", enemyindex)
-			end
-
-			if not enemyindex.isRunning then
-				enemyindex.animation.walkanimation:update(dt)
-			elseif enemyindex.isRunning then
-				enemyindex.animation.runanimation:update(dt)
-			end
-			
-		end
-		
-		if not enemyindex.isFacingRight and enemyindex.isMoving then -- Enemy should move Left
-			if enemyindex.velocity.x > -enemyindex.maxspeed then
-				enemyindex.isRunning = false
-				enemyindex.velocity.x = enemyindex.velocity.x - enemyindex.speed*dt
-				doEnemyAnimation("walk", enemyindex, dt)
-			elseif enemyindex.velocity.x <= -enemyindex.maxspeed and enemyindex.velocity.x > -enemyindex.maxspeed*2  and enemyindex.wantsToRun then-- Running		
-				enemyindex.isRunning = true
-				enemyindex.velocity.x = enemyindex.velocity.x - enemyindex.speed*dt
-				doEnemyAnimation("run", enemyindex, dt)
-			end
-
-			if not enemyindex.isRunning then
-				enemyindex.animation.walkanimation:update(dt)
-			elseif enemyindex.isRunning then
-				enemyindex.animation.runanimation:update(dt)
-			end
-		end
-
-		applyForces(dt,enemyindex)
-
-		if not enemyindex.isMoving then
-			doEnemyAnimation("idle", enemyindex, dt)
-			enemyindex.animation.standstillanimation:update(dt)
-		end
-
-		--Punch Animations
-		if enemyindex.isJabbed then
-			doEnemyAnimation("punched", enemyindex)
-			enemyindex.animation.jabbed_l1:update(dt)
-			if enemyindex.animation.jabbed_l1.status == 'paused' then
-				enemyindex.isJabbed = false
-				doEnemyAnimation('idle', enemyindex)
-				enemyindex.animation.jabbed_l1:resume()
-			end
-		end
-
-		if enemyindex.isDecked then
-			doEnemyAnimation("decked", enemyindex)
-			enemyindex.animation.decked_l1:update(dt)
-			if enemyindex.animation.decked_l1.status == 'paused' then
-				enemyindex.isDecked = false
-				doEnemyAnimation('idle', enemyindex)
-				enemyindex.animation.decked_l1:resume()
-			end
-		end
-
-		--Kick Animations
-		if enemyindex.isKicked then
-			if enemyindex.isJabbed then  --If the player interupts the kick animation with a punch, play that
-				enemyindex.isJabbed = true
-				enemyindex.isKicked = false
-				enemyindex.animation.shinkick_l1:resume()
-			end
-
-
-			if not enemyindex.isJabbed then
-				doEnemyAnimation("kicked", enemyindex)
-				enemyindex.animation.shinkick_l1:update(dt)
-				if enemyindex.animation.shinkick_l1.status == 'paused' then
-					enemyindex.isKicked = false
-					doEnemyAnimation('idle', enemyindex)
-					enemyindex.animation.shinkick_l1:resume()
-				end
-			end
-
-		end
-
-
-		if enemyindex.isFrontKicked then
-			doEnemyAnimation("frontkicked", enemyindex)
-			enemyindex.animation.frontkick_l1:update(dt)
-			if enemyindex.animation.frontkick_l1.status == 'paused' then
-				enemyindex.isFrontKicked = false
-				doEnemyAnimation('idle', enemyindex)
-				enemyindex.animation.frontkick_l1:resume()
-			end
-		end
-
-		
-		snapEnemyBoundingBoxes(enemyindex)
-	end  --Breaking out of enemies container
-
-end
-
-function doEnemyAnimation(action, indexie)	
-	
-		if indexie.isMoving then		
-			indexie.animation_state = 'walk'
-		end
-		
-		
-		if indexie.isFacingRight == true and indexie.isAnimationFlipped then
-			indexie.x = indexie.x + indexie.turnoffset
-			for i, enemyindex in pairs(indexie.animation) do
-				enemyindex:flipH()
-			end
-			indexie.isAnimationFlipped = false
-		elseif not indexie.isFacingRight and not indexie.isAnimationFlipped then
-			indexie.x = indexie.x - indexie.turnoffset
-			for i, enemyindex in pairs(indexie.animation) do
-				enemyindex:flipH()
-			end
-			indexie.isAnimationFlipped = true
-		end
-		
-
-		if action == 'fall' then
-			indexie.animation_state = 'idle'
-		end
-
-		if action == 'idle' then
-			indexie.animation_state = 'idle'	
-		end
-
-		if action == 'run' then
-			indexie.animation_state = 'run'
-		end
-
-		if action == 'punched' then
-			indexie.animation_state = 'punched'
-		elseif action == 'kicked' then
-			indexie.animation_state = 'kicked'	
-		elseif action == 'decked' then
-			indexie.animation_state = 'decked'
-		elseif action == 'frontkicked' then
-			indexie.animation_state = 'frontkicked'
-		end
-end
-
-function checkEnemyRemoval()
-	for i, value in ipairs(enemies) do
-
-		if value.health <= 0 then
-			value.isAlive = false
-		end
-
-		if value.x > screenwidth or value.x < 0 then
-			value.isAlive = false
-		elseif value.y > screenheight + 10 or value.y < 0 then
-			value.isAlive = false
-		end
-
-		--Zero out the variables, remove the bounding boxes and kill the table reference for the enemy
-		if value.isAlive == false then
-			for is, col_var in pairs(value.boundingbox.container) do
-				entityCollider:remove(col_var)				
-			end
-			Collider:remove(value.boundingbox.level)
-		
-			for ix, enemy_var in pairs(value) do
-				value[ix] = 0
-				value[ix] = nil
-			end
-			value = nil
-			table.remove(enemies,i)
-
-		end
-
-	end
-end
 
 --Collision Functions
 function ground_collision (dt, shape_a, shape_b, mtv_x, mtv_y)
@@ -807,6 +583,10 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 			if checkCollisionContainers({enemyIndex.boundingbox.entity_main}, isEnemy) then  --If that something is another enemies bounding box
 				if isEnemy2 then
 
+						
+				
+					if enemyIndex.animation_state == 'frontkicked' then  --
+
 						enemyIndex.velocity.x = 0						
 						enemyIndex.velocity.x = enemyIndex.velocity.x + mtv_x*dt+4
 						snapEnemyBoundingBoxes(enemyIndex)
@@ -814,9 +594,6 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 						enemyIndex2.velocity.x = 0						
 						enemyIndex2.velocity.x = enemyIndex2.velocity.x + -mtv_x*dt-4
 						snapEnemyBoundingBoxes(enemyIndex2)
-				
-					if enemyIndex.animation_state == 'frontkicked' then  --
-						--world.debugtext.entity[#world.debugtext.entity+1] = string.format("isEnemy: %s - isEnemy2:  %s ",tostring(enemyIndex.reference), tostring(enemyIndex2.reference))		
 						enemyIndex2.velocity.x = enemyIndex.velocity.x
 						
 						if enemyIndex.velocity.x > 0 then
@@ -1095,8 +872,7 @@ function createEnemies(number)
 		local enemy = {}
 		math.random()
 		enemy.spawn = math.random(#world.spawnLocations)
-		enemy.x = world.spawnLocations[enemy.spawn][1]
-		enemy.y = world.spawnLocations[enemy.spawn][2]
+
 		enemy.type = 'medium'
 		enemy.animation = {}
 
@@ -1149,11 +925,25 @@ function createEnemies(number)
 
 
 		--Enemy AI States
-		enemy.wantsToRun = true
+		enemy.wantsToRun = true		
+		enemy.talking = false
+		enemy.player_tracker = {}
+		enemy.player_tracker.playerSpotted = false
+		enemy.player_tracker.near = false
+		enemy.player_tracker.isScary = false
+		enemy.player_tracker.distanceToPlayer_x = 0
+		enemy.player_tracker.distanceToPlayer_y = 0
+		enemy.isAggresive = false
 
+
+		--Location and speed variables
 		enemy.velocity = {}
 		enemy.velocity.x = 0
 		enemy.velocity.y = 0
+		enemy.x = world.spawnLocations[enemy.spawn][1]
+		enemy.y = world.spawnLocations[enemy.spawn][2]
+
+
 		
 		enemy.animation_state = 'idle'
 		
