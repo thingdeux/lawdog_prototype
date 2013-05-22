@@ -45,9 +45,16 @@ function love.update(dt)
     	table.remove(world.debugtext.entity, 1)
     end
 
+    
+    --Give all of the player animations the time
+    --for i, animation in pairs(player.animations) do
+		--animation:update(dt)
+	--end
 
-	standstill:update(dt)
-	walkanimation:update(dt)
+	player.animations.jab:update(dt)
+	player.animations.walkanimation:update(dt)	
+	player.animations.cross:update(dt)
+	player.animations.standstill:update(dt)
 	
 	if love.keyboard.isDown("a") then
 		doPlayerAnimation('a',dt)
@@ -82,28 +89,22 @@ function love.draw()
 	--Draw Player variables if debug flag is set
 	if world.debug.player then
 		love.graphics.print("Velocity: " .. tostring(player.velocity.x), 340,40)
-		love.graphics.print("AnimTimer: " .. tostring(player.animTimer), 340,50)
+		love.graphics.print("Status: " .. tostring(player.animations.jab.status), 340,50)
 		love.graphics.print("isAttacking: " .. tostring(player.isAttacking), 340,60)
 		love.graphics.print("Player X: " .. tostring(player.x) .. "Player Y: " .. tostring(player.y), 340,70)
-		love.graphics.print("Player Yup: " .. tostring(player.yup), 340,80, math.rad(30))		
+		love.graphics.print("Action: " .. tostring(player.action), 340,80, math.rad(30))
+		--love.graphics.print("Test: " .. tostring(player.type), 340,90, math.rad(30))
 	end
 
 	--Draw Player
-	if player.animation == 'walk' then
-		walkanimation:draw(charactersheet, player.x,player.y)
-	elseif player.animation == 'idle' then
-		standstill:draw(charactersheet, player.x,player.y)
-	end
-
-	--Player Attacks placeholder text
-	if player.isAttacking and player.isFacingRight and player.action == "jab" then	--Draw "Biff" on jab when facing right
-		love.graphics.print("Biff", player.x + 38, player.y + player.boundingbox.offset_moveto_fist_y+3)
-	elseif player.isAttacking and not player.isFacingRight and player.action == "jab" then
-		love.graphics.print("Biff", player.x, player.y + player.boundingbox.offset_moveto_fist_y+3)
-	elseif player.isAttacking and player.isFacingRight and player.action == "hook" then
-		love.graphics.print("Hook", player.x + 38, player.y + player.boundingbox.offset_moveto_fist_y+3) --Draw "Hook" on jab when facing right
-	elseif player.isAttacking and not player.isFacingRight and player.action == "hook" then
-		love.graphics.print("Hook", player.x, player.y + player.boundingbox.offset_moveto_fist_y+3)
+	if player.animation == 'walk' and not player.isAttacking then
+		player.animations.walkanimation:draw(playersheet, player.x,player.y)
+	elseif player.animation == 'idle' and not player.isAttacking then
+		player.animations.standstill:draw(playersheet, player.x,player.y)
+	elseif player.isAttacking and player.action == "jab" then	--Draw jab animation
+		player.animations.jab:draw(playersheet, player.x, player.y)	
+	elseif player.isAttacking and player.action == "hook" then
+		player.animations.cross:draw(playersheet, player.x, player.y)
 	elseif player.isAttacking and player.isFacingRight and player.action == "kick" then
 		love.graphics.print("Kick", player.x + 38, player.y + player.boundingbox.offset_moveto_foot_y-6) ----Draw "Kick" on shin kick
 	elseif player.isAttacking and not player.isFacingRight and player.action == "kick" then
@@ -231,9 +232,10 @@ function love.keypressed(key)
 	end
 
 	if key == "escape" then
-		love.event.push("quit") -- Quit the app
+		love.event.push("quit") -- Quit the game
 	end
 
+	
 	if key == "e" and (love.keyboard.isDown("a") or love.keyboard.isDown("d") ) then -- Hook
 		player.action = "hook"
 		player.energy = player.energy - 2
@@ -246,7 +248,6 @@ function love.keypressed(key)
 	elseif key == " " then  --Spacebar
 		player.action = "kick"
 		player.energy = player.energy - 0.2
-
 	end
 
 	if key == "f" then
@@ -360,8 +361,11 @@ function doPlayerAnimation(key,dt)
 			elseif player.isFacingRight then
 				player.x = player.x - player.turnoffset
 				player.isFacingRight = false
-				walkanimation:flipH()
-				standstill:flipH()
+
+				for i, animation in pairs(player.animations) do
+					animation:flipH()
+				end
+
 				moveplayer('left',dt)
 			end
 		end
@@ -372,8 +376,11 @@ function doPlayerAnimation(key,dt)
 			elseif player.isFacingRight == false then
 				player.x = player.x + player.turnoffset
 				player.isFacingRight = true
-				walkanimation:flipH()
-				standstill:flipH()
+
+				for i, animation in pairs(player.animations) do
+					animation:flipH()
+				end
+
 				moveplayer('right',dt)
 			end
 		end
@@ -384,6 +391,7 @@ function doPlayerAnimation(key,dt)
 end
 
 function playerAttack(type, dt)
+	
 	local function isTheShapeAGhost(colliderInstance, shape)
 		for i, value in pairs(colliderInstance._active_shapes) do -- Iterate over active
 			if value == shape then --Do you find the shape?
@@ -394,19 +402,23 @@ function playerAttack(type, dt)
 		return false
 	end
 
-	local function doAttack(speed, boundingbox, stop)
-		if not stop then 
-			player.isAttacking = true
-			player.animTimer = love.timer.getTime() + speed
+	local function doAttack(boundingbox, stop)
 
+
+		if not stop then 
+			player.animTimer = love.timer.getTime() + player.jabspeed
+			player.isAttacking = true
+			
 			if not isTheShapeAGhost(entityCollider, boundingbox) then
 				entityCollider:setSolid(boundingbox)
 			end
 		end
 
-		if stop == true then
-			player.isAttacking = false
+		if stop then			
 			player.action = false
+			player.isAttacking = false
+						
+
 			if isTheShapeAGhost(entityCollider, boundingbox) then
 				entityCollider:setGhost(boundingbox)
 			end	
@@ -414,17 +426,20 @@ function playerAttack(type, dt)
 
 	end
 
-
 	if type == "jab" and player.isAttacking == false then
-		doAttack(player.jabspeed, player.boundingbox.fist_box)
-	elseif type == "jab" and player.isAttacking == true and love.timer.getTime() > player.animTimer then
-		doAttack(player.jabspeed, player.boundingbox.fist_box, true)
+		player.animations.jab:resume()
+		doAttack(player.boundingbox.fist_box, false)		
+	elseif type == "jab" and player.isAttacking and love.timer.getTime() > player.animTimer then		
+		player.animations.jab:pauseAtStart()
+		doAttack(player.boundingbox.fist_box, true)
+		
+		
 	end
 
-	if type == 'hook' and player.isAttacking == false then
-		doAttack(player.hookspeed, player.boundingbox.fist_box)
+	if type == 'hook' and player.isAttacking == false and love.timer.getTime() > player.animTimer then		
+		doAttack(player.boundingbox.fist_box)
 	elseif type == 'hook' and player.isAttacking == true and love.timer.getTime() > player.animTimer then
-		doAttack(player.hookspeed, player.boundingbox.fist_box, true)
+		doAttack(player.boundingbox.fist_box, true)
 	end
 
 	if type == 'kick' and player.isAttacking == false then
@@ -461,9 +476,12 @@ function doPlayerProcessing(dt)
 		player.velocity.x = 0		
 	end
 	
+	
+	if player.action then --If an action has been performed
+		
+		if player.action == "jab" or player.action == "hook" or 
+			player.action == "kick" or player.action == "frontkick" then --The action is an attack
 
-	if player.action then
-		if playerAttack then
 			playerAttack(player.action, dt)
 		end
 	end
@@ -721,20 +739,31 @@ end
 
 function load_graphics()
 	--Load Graphics and init animations	
-	charactersheet = love.graphics.newImage("CharacterSheet.png")
-	enemysheet = love.graphics.newImage("enemy_sheet.png")
-	background = love.graphics.newImage("Background.jpg")
+	--charactersheet = love.graphics.newImage("/assets/CharacterSheet.png")
+	enemysheet = love.graphics.newImage("/assets/enemy_sheet.png")
+	background = love.graphics.newImage("/assets/Background.jpg")
+	playersheet = love.graphics.newImage("/assets/player_sheet.png")
 
 	
 
-	agrid = anim8.newGrid(60, 100, charactersheet:getWidth(), charactersheet:getHeight())
+	--agrid = anim8.newGrid(60, 100, charactersheet:getWidth(), charactersheet:getHeight())
 	enemygrid = anim8.newGrid(90,100, enemysheet:getWidth(), enemysheet:getHeight())
+	playergrid = anim8.newGrid(99, 110, playersheet:getWidth(), playersheet:getHeight())
 	
-	standstill = anim8.newAnimation(agrid(1, 1), 0.1)
-	walkanimation = anim8.newAnimation(agrid('2-7', 1), 0.1)
-	weakenemystandstill = anim8.newAnimation(agrid(1, 2), 0.1)
-	weakenemywalkanimation = anim8.newAnimation(agrid('2-7', 2), 0.1)
+	--standstill = anim8.newAnimation(agrid(1, 1), 0.1)
+	--walkanimation = anim8.newAnimation(agrid('2-7', 1), 0.1)
+	--weakenemystandstill = anim8.newAnimation(agrid(1, 2), 0.1)
+	--weakenemywalkanimation = anim8.newAnimation(agrid('2-7', 2), 0.1)
+
+
+	standstill = anim8.newAnimation(playergrid(1,1), 0.1)
+	walkanimation = anim8.newAnimation(playergrid(1, 1), 0.1)
 	
+	cross = anim8.newAnimation(playergrid(4, 1), 0.4, 'pause')
+
+	
+
+	--Medium Enemy animation loads and designations
 	mediumenemystandstill = anim8.newAnimation(enemygrid(3,3, 2,4, 1,5, 4,3, 3,4 ), 0.3)
 	mediumenemydance = anim8.newAnimation(enemygrid('2-5',1,'2-2', 2,'3-4', 2), 0.14)
 	mediumenemyrunanimation = anim8.newAnimation(enemygrid(8,2,7,3,6,4,10,1,9,2,8,3,7,4,6,5,11,1,10,2,9,3,8,4,7,5,11,2,10,3,9,4,8,5), 0.04)
@@ -754,9 +783,15 @@ end
 
 function create_player()
 	player = {}
-	player.yup = false
 	player.x = 300
 	player.y = 400
+	player.jabspeed = 1
+	player.animations = {}
+	player.animations.standstill = standstill:clone()
+	player.animations.walkanimation = walkanimation:clone()
+	player.animations.jab = anim8.newAnimation(playergrid(1,1, 2,1, 1,2), player.jabspeed, 'pause')
+	player.animations.cross = cross:clone()
+
 
 	player.punchDamage = 25
 	player.punchMultiplier = 1
@@ -764,9 +799,9 @@ function create_player()
 	player.kickMultipler = 1
 
 	player.isOnGround = false
-	player.action = false
+	player.action = 'idle'
 	player.speed = 400
-	player.jabspeed = .2
+	
 	player.hookspeed = .7
 	player.kickspeed = .3
 	player.frontkickspeed = .8
