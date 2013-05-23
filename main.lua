@@ -47,14 +47,9 @@ function love.update(dt)
 
     
     --Give all of the player animations the time
-    --for i, animation in pairs(player.animations) do
-		--animation:update(dt)
-	--end
-
-	player.animations.jab:update(dt)
-	player.animations.walkanimation:update(dt)	
-	player.animations.cross:update(dt)
-	player.animations.standstill:update(dt)
+    for i, animation in pairs(player.animations) do
+		animation:update(dt)
+	end
 	
 	if love.keyboard.isDown("a") then
 		doPlayerAnimation('a',dt)
@@ -89,11 +84,11 @@ function love.draw()
 	--Draw Player variables if debug flag is set
 	if world.debug.player then
 		love.graphics.print("Velocity: " .. tostring(player.velocity.x), 340,40)
-		love.graphics.print("Status: " .. tostring(player.animations.jab.status), 340,50)
-		love.graphics.print("isAttacking: " .. tostring(player.isAttacking), 340,60)
+		--love.graphics.print("Status: " .. tostring(player.animations.jab.status), 340,50)
+		--love.graphics.print("isAttacking: " .. tostring(player.isAttacking), 340,60)
 		love.graphics.print("Player X: " .. tostring(player.x) .. "Player Y: " .. tostring(player.y), 340,70)
-		love.graphics.print("Action: " .. tostring(player.action), 340,80, math.rad(30))
-		--love.graphics.print("Test: " .. tostring(player.type), 340,90, math.rad(30))
+		--love.graphics.print("Action: " .. tostring(player.action), 340,80, math.rad(30))
+		--love.graphics.print("Animtimer: " .. tostring(player.animTimer), 340,90, math.rad(30))
 	end
 
 	--Draw Player
@@ -102,7 +97,9 @@ function love.draw()
 	elseif player.animation == 'idle' and not player.isAttacking then
 		player.animations.standstill:draw(playersheet, player.x,player.y)
 	elseif player.isAttacking and player.action == "jab" then	--Draw jab animation
-		player.animations.jab:draw(playersheet, player.x, player.y)	
+		player.animations.jab:draw(playersheet, player.x, player.y) --Draw cross animation
+	elseif player.isAttacking and player.action == "cross" then
+		player.animations.cross:draw(playersheet, player.x, player.y)
 	elseif player.isAttacking and player.action == "hook" then
 		player.animations.cross:draw(playersheet, player.x, player.y)
 	elseif player.isAttacking and player.isFacingRight and player.action == "kick" then
@@ -152,8 +149,8 @@ function love.draw()
 		love.graphics.setColor(255,255,12, 255)
 		player.boundingbox.entity_main:draw('line')
 		love.graphics.setColor(255,player.boundingbox.fist_color,player.boundingbox.fist_color, 255)
-		--player.boundingbox.fist_box:draw('line')
-		--player.boundingbox.foot_box:draw('line')
+		player.boundingbox.fist_box:draw('line')
+		player.boundingbox.foot_box:draw('line')
 		love.graphics.setColor(255,255,255, 255)
 		--player.boundingbox.entity_top_left:draw('line')
 		--player.boundingbox.entity_top_right:draw('line')
@@ -168,9 +165,7 @@ function love.draw()
 			--enemy.boundingbox.entity_top_left:draw('line')
 			--enemy.boundingbox.entity_top_right:draw('line')
 			--enemy.boundingbox.entity_bottom_left:draw('line')
-			--enemy.boundingbox.entity_bottom_right:draw('line')
-
-			
+			--enemy.boundingbox.entity_bottom_right:draw('line')		
 		end
 
 		for i = 1,#world.debugtext.entity do
@@ -242,12 +237,20 @@ function love.keypressed(key)
 	elseif key == " " and (love.keyboard.isDown("a") or love.keyboard.isDown("d") ) then -- Front Kick
 		player.action = "frontkick"
 		player.energy = player.energy - 2
+	elseif key == "e" and player.action == "jab" then
+		player.action = "cross"
+		player.isAttacking = false
+		player.energy = player.energy - 1
+	elseif key == "e" and player.action == "cross" then
+		player.action = "jab"
+		player.isAttacking = false
+		player.energy = player.energy - 1
 	elseif key == "e" then
 		player.action = "jab"
-		player.energy = player.energy - 0.5
+		player.energy = player.energy - 1
 	elseif key == " " then  --Spacebar
 		player.action = "kick"
-		player.energy = player.energy - 0.2
+		player.energy = player.energy - 0.5
 	end
 
 	if key == "f" then
@@ -312,23 +315,27 @@ function snapPlayerBoundingBoxes()
 	
 		
 		if player.isFacingRight then
-			player.boundingbox.level:moveTo(player.x + player.boundingbox.offset_moveto_level_x+4, player.y + player.boundingbox.offset_moveto_level_y)
+			player.boundingbox.level:moveTo(player.x + player.boundingbox.offset_moveto_level_x + 4, player.y + player.boundingbox.offset_moveto_level_y)
 			player.boundingbox.entity_main:moveTo(player.x + player.boundingbox.offset_moveto_level_x + 4, player.y + player.boundingbox.offset_moveto_level_y)
+
 			player.boundingbox.entity_top_left:moveTo(player.x + player.boundingbox.offset_moveto_entity_left_x, player.y + player.boundingbox.offset_moveto_entity_top_y)
 			player.boundingbox.entity_top_right:moveTo(player.x + player.boundingbox.offset_moveto_entity_right_x, player.y + player.boundingbox.offset_moveto_entity_top_y)
 			player.boundingbox.entity_bottom_right:moveTo(player.x + player.boundingbox.offset_moveto_entity_right_x, player.y + player.boundingbox.offset_moveto_entity_bottom_y)
 			player.boundingbox.entity_bottom_left:moveTo(player.x + player.boundingbox.offset_moveto_entity_left_x, player.y + player.boundingbox.offset_moveto_entity_bottom_y)
+
 			player.boundingbox.fist_box:moveTo(player.x + player.boundingbox.offset_moveto_fist_x, player.y + player.boundingbox.offset_moveto_fist_y*2)
 			player.boundingbox.foot_box:moveTo(player.x + player.boundingbox.offset_moveto_fist_x, player.y + player.boundingbox.offset_moveto_foot_y)
 		else
-			player.boundingbox.level:moveTo(player.x + player.boundingbox.offset_moveto_level_x+20, player.y + player.boundingbox.offset_moveto_level_y)
-			player.boundingbox.entity_main:moveTo(player.x + player.boundingbox.offset_moveto_level_x + 18, player.y + player.boundingbox.offset_moveto_level_y)
-			player.boundingbox.entity_top_left:moveTo(player.x + player.boundingbox.offset_moveto_entity_left_x+15, player.y + player.boundingbox.offset_moveto_entity_top_y)
-			player.boundingbox.entity_top_right:moveTo(player.x + player.boundingbox.offset_moveto_entity_right_x+15, player.y + player.boundingbox.offset_moveto_entity_top_y)
-			player.boundingbox.entity_bottom_right:moveTo(player.x + player.boundingbox.offset_moveto_entity_right_x+15, player.y + player.boundingbox.offset_moveto_entity_bottom_y)
-			player.boundingbox.entity_bottom_left:moveTo(player.x + player.boundingbox.offset_moveto_entity_left_x+15, player.y + player.boundingbox.offset_moveto_entity_bottom_y)
-			player.boundingbox.fist_box:moveTo(player.x + 10, player.y + player.boundingbox.offset_moveto_fist_y*2)
-			player.boundingbox.foot_box:moveTo(player.x + 5, player.y + player.boundingbox.offset_moveto_foot_y)
+			player.boundingbox.level:moveTo(player.x + player.boundingbox.offset_moveto_level_x, player.y + player.boundingbox.offset_moveto_level_y)
+			player.boundingbox.entity_main:moveTo(player.x + player.boundingbox.offset_moveto_level_x, player.y + player.boundingbox.offset_moveto_level_y)
+
+			player.boundingbox.entity_top_left:moveTo(player.x + player.boundingbox.offset_moveto_entity_left_x, player.y + player.boundingbox.offset_moveto_entity_top_y)
+			player.boundingbox.entity_top_right:moveTo(player.x + player.boundingbox.offset_moveto_entity_right_x, player.y + player.boundingbox.offset_moveto_entity_top_y)
+			player.boundingbox.entity_bottom_right:moveTo(player.x + player.boundingbox.offset_moveto_entity_right_x, player.y + player.boundingbox.offset_moveto_entity_bottom_y)
+			player.boundingbox.entity_bottom_left:moveTo(player.x + player.boundingbox.offset_moveto_entity_left_x, player.y + player.boundingbox.offset_moveto_entity_bottom_y)
+
+			player.boundingbox.fist_box:moveTo(player.x + 14, player.y + player.boundingbox.offset_moveto_fist_y*2)
+			player.boundingbox.foot_box:moveTo(player.x + 14, player.y + player.boundingbox.offset_moveto_foot_y)
 
 		end
 end
@@ -402,12 +409,11 @@ function playerAttack(type, dt)
 		return false
 	end
 
-	local function doAttack(boundingbox, stop)
+	local function doAttack(speed,boundingbox, stop)
 
-
-		if not stop then 
-			player.animTimer = love.timer.getTime() + player.jabspeed
-			player.isAttacking = true
+		if not stop then
+			player.animTimer = love.timer.getTime() + speed
+			player.isAttacking = true		
 			
 			if not isTheShapeAGhost(entityCollider, boundingbox) then
 				entityCollider:setSolid(boundingbox)
@@ -427,29 +433,34 @@ function playerAttack(type, dt)
 	end
 
 	if type == "jab" and player.isAttacking == false then
-		player.animations.jab:resume()
-		doAttack(player.boundingbox.fist_box, false)		
-	elseif type == "jab" and player.isAttacking and love.timer.getTime() > player.animTimer then		
-		player.animations.jab:pauseAtStart()
-		doAttack(player.boundingbox.fist_box, true)
-		
-		
+		player.animations.jab:gotoFrame(1)
+		doAttack(player.jabspeed,player.boundingbox.fist_box, false)		
+	elseif type == "jab" and player.isAttacking and love.timer.getTime() > player.animTimer then				
+		doAttack(player.jabspeed,player.boundingbox.fist_box, true)
 	end
 
-	if type == 'hook' and player.isAttacking == false and love.timer.getTime() > player.animTimer then		
-		doAttack(player.boundingbox.fist_box)
+	if type == "cross" and player.isAttacking == false then
+		player.animations.cross:gotoFrame(1)
+		doAttack(player.crossspeed, player.boundingbox.fist_box, false)
+	elseif type == "cross" and player.isAttacking and love.timer.getTime() > player.animTimer then		
+		doAttack(player.crossspeed,player.boundingbox.fist_box, true)
+	end
+
+	if type == 'hook' and player.isAttacking == false and love.timer.getTime() > player.animTimer then
+		player.animations.cross:gotoFrame(1)
+		doAttack(player.hookspeed,player.boundingbox.fist_box, false)
 	elseif type == 'hook' and player.isAttacking == true and love.timer.getTime() > player.animTimer then
-		doAttack(player.boundingbox.fist_box, true)
+		doAttack(player.hookspeed,player.boundingbox.fist_box, true)
 	end
 
 	if type == 'kick' and player.isAttacking == false then
-		doAttack(player.kickspeed, player.boundingbox.foot_box)
+		doAttack(player.kickspeed, player.boundingbox.foot_box, false)
 	elseif type == 'kick' and player.isAttacking == true and love.timer.getTime() > player.animTimer then
 		doAttack(player.kickspeed, player.boundingbox.foot_box, true)
 	end
 
 	if type == 'frontkick' and player.isAttacking == false then
-		doAttack(player.frontkickspeed, player.boundingbox.foot_box)
+		doAttack(player.frontkickspeed, player.boundingbox.foot_box, false)
 	elseif type == 'frontkick' and player.isAttacking == true and love.timer.getTime() > player.animTimer then
 		doAttack(player.frontkickspeed, player.boundingbox.foot_box, true)
 	end
@@ -478,9 +489,9 @@ function doPlayerProcessing(dt)
 	
 	
 	if player.action then --If an action has been performed
-		
 		if player.action == "jab" or player.action == "hook" or 
-			player.action == "kick" or player.action == "frontkick" then --The action is an attack
+			player.action == "kick" or player.action == "frontkick" or 
+			player.action == "cross" then --The action is an attack
 
 			playerAttack(player.action, dt)
 		end
@@ -650,9 +661,9 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 			if isEnemy then  -- If that something happens to be an ENEMY!!!
 				if checkCollisionContainers({enemyIndex.boundingbox.entity_top_left,enemyIndex.boundingbox.entity_top_right}, isEnemy) then --If you're hitting their top bounding boxes
 					
-					if not enemyIndex.isJabbed and not enemyIndex.isDecked and enemyIndex.isAlive and player.action == "jab" then --If they're not already being punched and they're hit with a jab
+					if not enemyIndex.isJabbed and not enemyIndex.isDecked and enemyIndex.isAlive and player.action == "jab"  or player.action == "cross" then --If they're not already being punched and they're hit with a jab
 						enemyIndex.isJabbed = true
-						enemyIndex.health = enemyIndex.health - player.punchDamage
+						enemyIndex.health = enemyIndex.health - player.punchDamage						
 						entityCollider:setGhost(player.boundingbox.fist_box) -- Turn the collision box off until activated by punch again	
 					elseif not enemyIndex.isJabbed and not enemyIndex.isDecked and enemyIndex.isAlive and player.action == "hook" then --If they're not already being punched and they're hit with a jab
 						enemyIndex.isDecked = true
@@ -739,29 +750,13 @@ end
 
 function load_graphics()
 	--Load Graphics and init animations	
-	--charactersheet = love.graphics.newImage("/assets/CharacterSheet.png")
 	enemysheet = love.graphics.newImage("/assets/enemy_sheet.png")
 	background = love.graphics.newImage("/assets/Background.jpg")
 	playersheet = love.graphics.newImage("/assets/player_sheet.png")
-
-	
-
-	--agrid = anim8.newGrid(60, 100, charactersheet:getWidth(), charactersheet:getHeight())
 	enemygrid = anim8.newGrid(90,100, enemysheet:getWidth(), enemysheet:getHeight())
 	playergrid = anim8.newGrid(99, 110, playersheet:getWidth(), playersheet:getHeight())
-	
-	--standstill = anim8.newAnimation(agrid(1, 1), 0.1)
-	--walkanimation = anim8.newAnimation(agrid('2-7', 1), 0.1)
-	--weakenemystandstill = anim8.newAnimation(agrid(1, 2), 0.1)
-	--weakenemywalkanimation = anim8.newAnimation(agrid('2-7', 2), 0.1)
-
-
 	standstill = anim8.newAnimation(playergrid(1,1), 0.1)
-	walkanimation = anim8.newAnimation(playergrid(1, 1), 0.1)
-	
-	cross = anim8.newAnimation(playergrid(4, 1), 0.4, 'pause')
-
-	
+	walkanimation = anim8.newAnimation(playergrid(1, 1), 0.1)	
 
 	--Medium Enemy animation loads and designations
 	mediumenemystandstill = anim8.newAnimation(enemygrid(3,3, 2,4, 1,5, 4,3, 3,4 ), 0.3)
@@ -785,12 +780,13 @@ function create_player()
 	player = {}
 	player.x = 300
 	player.y = 400
-	player.jabspeed = 1
+	player.jabspeed = .18
+	player.crossspeed = .18
 	player.animations = {}
 	player.animations.standstill = standstill:clone()
 	player.animations.walkanimation = walkanimation:clone()
-	player.animations.jab = anim8.newAnimation(playergrid(1,1, 2,1, 1,2), player.jabspeed, 'pause')
-	player.animations.cross = cross:clone()
+	player.animations.jab = anim8.newAnimation(playergrid(2,1, 1,2, 1, 1), {0.03, player.jabspeed/2 +8,0.03} )
+	player.animations.cross = anim8.newAnimation(playergrid(4, 1), 0.4, 'pause')
 
 
 	player.punchDamage = 25
@@ -802,7 +798,7 @@ function create_player()
 	player.action = 'idle'
 	player.speed = 400
 	
-	player.hookspeed = .7
+	player.hookspeed = .6
 	player.kickspeed = .3
 	player.frontkickspeed = .8
 	player.maxspeed = 180
@@ -821,20 +817,20 @@ function create_player()
 	player.boundingbox = {}
 
 	--Offset measurements for snapping the bounding box to the player
-	player.turnoffset = 20
-	player.boundingbox.offset_moveto_fist_x = 50
-	player.boundingbox.offset_moveto_fist_y = 10
+	player.turnoffset = 0
+	player.boundingbox.offset_moveto_fist_x = 84
+	player.boundingbox.offset_moveto_fist_y = 26
 	player.boundingbox.offset_moveto_foot_y = 80
 	player.boundingbox.fist_color = 120
-	player.boundingbox.offset_moveto_entity_left_x = 15
+	player.boundingbox.offset_moveto_entity_left_x = 60
 	player.boundingbox.offset_moveto_entity_top_y = 25
-	player.boundingbox.offset_moveto_entity_right_x = 30 
+	player.boundingbox.offset_moveto_entity_right_x = 40 
 	player.boundingbox.offset_moveto_entity_bottom_y = 75
-	player.boundingbox.offset_moveto_level_x = 18
-	player.boundingbox.offset_moveto_level_y = 50
-	player.boundingbox.level_sizeX = 38
-	player.boundingbox.level_sizeY = 100
-	player.boundingbox.entity_sizeX = 15
+	player.boundingbox.offset_moveto_level_x = 46
+	player.boundingbox.offset_moveto_level_y = 55
+	player.boundingbox.level_sizeX = 46
+	player.boundingbox.level_sizeY = 90
+	player.boundingbox.entity_sizeX = 20
 	player.boundingbox.entity_sizeY = 50
 
 	--Bounding Box for level collision (wraps around the players body)
