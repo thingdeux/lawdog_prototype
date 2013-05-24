@@ -78,7 +78,7 @@ end  --End Updated function
 
 function love.draw()
 	--Draw Background and UI Elements
-	--love.graphics.draw(background, 0, 0)
+	love.graphics.draw(background, 0, 0)
 	love.graphics.print("Player Energy: " .. tostring(player.energy), 800, 0)
 
 	--Draw Player variables if debug flag is set
@@ -130,16 +130,35 @@ function love.draw()
 			value.animation.decked_l1:draw(enemysheet, value.x, value.y)
 		elseif value.animation_state == 'frontkicked' then
 			value.animation.frontkick_l1:draw(enemysheet, value.x, value.y)
+		elseif value.animation_state == 'fighting' then
+			value.animation.fightingstance:draw(enemysheet, value.x, value.y)
+		elseif value.animation_state == 'dance' then
+			value.animation.dance:draw(enemysheet, value.x, value.y)
 		end
 
 
 
 		if world.debug.enemies then			
-			love.graphics.print(string.format("Enemy (%s): VelX: %s - X: %s - facingRight: %s - isAnimationFlipped: %s", 
-				i, math.floor(value.velocity.x), math.floor(value.x), tostring(value.isFacingRight), tostring(value.isAnimationFlipped)),
-				 	0, value.debugtextloc)
-			love.graphics.print("NumOfEnemies: " .. tostring(#enemies), 800, 10)
-			love.graphics.print(string.format("DisX: %s DisY: %s", tostring(value.player_tracker.distanceToPlayer_x), tostring(value.player_tracker.distanceToPlayer_y)), value.x-50, value.y)
+			--love.graphics.print(string.format("Enemy (%s): VelX: %s - X: %s - facingRight: %s - isAnimationFlipped: %s", i, math.floor(value.velocity.x), math.floor(value.x), tostring(value.isFacingRight), tostring(value.isAnimationFlipped)),0, value.debugtextloc)
+			--love.graphics.print("NumOfEnemies: " .. tostring(#enemies), 800, 10)
+			--love.graphics.print(string.format("DisX: %s DisY: %s", tostring(value.player_tracker.distanceToPlayer_x), tostring(value.player_tracker.distanceToPlayer_y)), value.x-50, value.y)
+			
+			local ix = 0 -- Variable for the state tables to display properly
+			--Check the state table and display any true values above the enemy
+			for i,values in pairs(value.player_tracker) do
+				if values then
+					love.graphics.print(tostring(i) .. ": " .. tostring(values), value.x, value.y - ix)
+					ix = ix + 10
+				end
+			end
+			
+			--Check the state table and display any true values above the enemy
+			for i,values in pairs(value.state) do
+				if values then
+					love.graphics.print(tostring(i) .. ": " .. tostring(values), value.x, value.y - ix)
+					ix = ix + 10
+				end
+			end
 
 		end
 	end
@@ -217,6 +236,11 @@ function love.keypressed(key)
 		local state = not world.debug.collision_entity
 		world.debug.collision_entity = state
 	end
+	if key == "f5" then
+		local state = not world.dancetime
+		world.dancetime = state
+	end
+
 
 
 	if key == "tab" then
@@ -397,7 +421,7 @@ function doPlayerAnimation(key,dt)
 		end
 end
 
-function playerAttack(type, dt)
+function playerAttack(attacktype, dt)
 	
 	local function isTheShapeAGhost(colliderInstance, shape)
 		for i, value in pairs(colliderInstance._active_shapes) do -- Iterate over active
@@ -432,36 +456,36 @@ function playerAttack(type, dt)
 
 	end
 
-	if type == "jab" and player.isAttacking == false then
+	if attacktype == "jab" and player.isAttacking == false then
 		player.animations.jab:gotoFrame(1)
 		doAttack(player.jabspeed,player.boundingbox.fist_box, false)		
-	elseif type == "jab" and player.isAttacking and love.timer.getTime() > player.animTimer then				
+	elseif attacktype == "jab" and player.isAttacking and love.timer.getTime() > player.animTimer then				
 		doAttack(player.jabspeed,player.boundingbox.fist_box, true)
 	end
 
-	if type == "cross" and player.isAttacking == false then
+	if attacktype == "cross" and player.isAttacking == false then
 		player.animations.cross:gotoFrame(1)
 		doAttack(player.crossspeed, player.boundingbox.fist_box, false)
-	elseif type == "cross" and player.isAttacking and love.timer.getTime() > player.animTimer then		
+	elseif attacktype == "cross" and player.isAttacking and love.timer.getTime() > player.animTimer then		
 		doAttack(player.crossspeed,player.boundingbox.fist_box, true)
 	end
 
-	if type == 'hook' and player.isAttacking == false and love.timer.getTime() > player.animTimer then
+	if attacktype == 'hook' and player.isAttacking == false and love.timer.getTime() > player.animTimer then
 		player.animations.cross:gotoFrame(1)
 		doAttack(player.hookspeed,player.boundingbox.fist_box, false)
-	elseif type == 'hook' and player.isAttacking == true and love.timer.getTime() > player.animTimer then
+	elseif attacktype == 'hook' and player.isAttacking == true and love.timer.getTime() > player.animTimer then
 		doAttack(player.hookspeed,player.boundingbox.fist_box, true)
 	end
 
-	if type == 'kick' and player.isAttacking == false then
+	if attacktype == 'kick' and player.isAttacking == false then
 		doAttack(player.kickspeed, player.boundingbox.foot_box, false)
-	elseif type == 'kick' and player.isAttacking == true and love.timer.getTime() > player.animTimer then
+	elseif attacktype == 'kick' and player.isAttacking == true and love.timer.getTime() > player.animTimer then
 		doAttack(player.kickspeed, player.boundingbox.foot_box, true)
 	end
 
-	if type == 'frontkick' and player.isAttacking == false then
+	if attacktype == 'frontkick' and player.isAttacking == false then
 		doAttack(player.frontkickspeed, player.boundingbox.foot_box, false)
-	elseif type == 'frontkick' and player.isAttacking == true and love.timer.getTime() > player.animTimer then
+	elseif attacktype == 'frontkick' and player.isAttacking == true and love.timer.getTime() > player.animTimer then
 		doAttack(player.frontkickspeed, player.boundingbox.foot_box, true)
 	end
 
@@ -626,12 +650,12 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 						enemyIndex2.velocity.x = enemyIndex.velocity.x
 						
 						if enemyIndex.velocity.x > 0 then
-							world.debugtext.entity[#world.debugtext.entity+1] = string.format("ShiftingLeft: %s - isEnemy2:  %s ",tostring(enemyIndex.reference), tostring(enemyIndex2.reference))
+							--world.debugtext.entity[#world.debugtext.entity+1] = string.format("ShiftingLeft: %s - isEnemy2:  %s ",tostring(enemyIndex.reference), tostring(enemyIndex2.reference))
 							enemyIndex2.velocity.x = enemyIndex2.velocity.x - 150
 							snapEnemyBoundingBoxes(enemyIndex2)
 							snapEnemyBoundingBoxes(enemyIndex)
 						elseif enemyIndex.velocity.x < 0 then
-							world.debugtext.entity[#world.debugtext.entity+1] = string.format("ShiftingRight: %s - isEnemy2:  %s ",tostring(enemyIndex.reference), tostring(enemyIndex2.reference))
+							--world.debugtext.entity[#world.debugtext.entity+1] = string.format("ShiftingRight: %s - isEnemy2:  %s ",tostring(enemyIndex.reference), tostring(enemyIndex2.reference))
 							enemyIndex2.velocity.x = enemyIndex2.velocity.x + 150
 							snapEnemyBoundingBoxes(enemyIndex2)
 							snapEnemyBoundingBoxes(enemyIndex)
@@ -661,19 +685,30 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 			if isEnemy then  -- If that something happens to be an ENEMY!!!
 				if checkCollisionContainers({enemyIndex.boundingbox.entity_top_left,enemyIndex.boundingbox.entity_top_right}, isEnemy) then --If you're hitting their top bounding boxes
 					
-					if not enemyIndex.isJabbed and not enemyIndex.isDecked and enemyIndex.isAlive and player.action == "jab"  or player.action == "cross" then --If they're not already being punched and they're hit with a jab
-						enemyIndex.isJabbed = true
-						enemyIndex.health = enemyIndex.health - player.punchDamage						
-						entityCollider:setGhost(player.boundingbox.fist_box) -- Turn the collision box off until activated by punch again	
-					elseif not enemyIndex.isJabbed and not enemyIndex.isDecked and enemyIndex.isAlive and player.action == "hook" then --If they're not already being punched and they're hit with a jab
-						enemyIndex.isDecked = true
-						enemyIndex.health = enemyIndex.health - player.punchDamage*2
-						entityCollider:setGhost(player.boundingbox.fist_box) -- Turn the collision box off until activated by punch again
-						if checkCollisionContainers({enemyIndex.boundingbox.entity_top_right}, isEnemy) then
-							enemyIndex.velocity.x = enemyIndex.velocity.x + -80
-						else
-							enemyIndex.velocity.x = enemyIndex.velocity.x + 80
+					if not enemyIndex.isJabbed and not enemyIndex.isDecked and enemyIndex.isAlive and player.action == "jab"  or player.action == "cross" then 
+			  			
+			  			if not enemyIndex.dodged then
+			  				--If they're not already being punched and they're hit with a jab
+							enemyIndex.isJabbed = true
+							enemyIndex.health = enemyIndex.health - player.punchDamage
 						end
+						entityCollider:setGhost(player.boundingbox.fist_box) -- Turn the collision box off until activated by punch again	
+
+
+					elseif not enemyIndex.isJabbed and not enemyIndex.isDecked and enemyIndex.isAlive and player.action == "hook" then--If they're not already being punched and they're hit with a hook
+							   
+						if not enemyIndex.dodged then --If they haven't dodged
+							enemyIndex.isDecked = true
+							enemyIndex.health = enemyIndex.health - player.punchDamage*2							
+							if checkCollisionContainers({enemyIndex.boundingbox.entity_top_right}, isEnemy) then
+								enemyIndex.velocity.x = enemyIndex.velocity.x + -80
+							else
+								enemyIndex.velocity.x = enemyIndex.velocity.x + 80
+							end
+						end
+
+						entityCollider:setGhost(player.boundingbox.fist_box) -- Turn the collision box off until activated by punch again
+
 					end
 
 				end
@@ -686,23 +721,30 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 				if checkCollisionContainers({enemyIndex.boundingbox.entity_bottom_left,enemyIndex.boundingbox.entity_bottom_right}, isEnemy) then --If you're hitting their bottom bounding boxes
 					
 					if not enemyIndex.isKicked and enemyIndex.isAlive and player.action == "kick" then --If they're not already being kicked and the player is shin kicking
-						enemyIndex.isKicked = true
-						enemyIndex.health = enemyIndex.health - player.kickDamage
+						if not enemyIndex.dodged then --If they haven't dodged
+							enemyIndex.isKicked = true
+							enemyIndex.health = enemyIndex.health - player.kickDamage
+						end
 						entityCollider:setGhost(player.boundingbox.foot_box) -- Turn the collision box off until activated by kick again	
 
 					elseif not enemyIndex.isFrontKicked and enemyIndex.isAlive and player.action == "frontkick" then
-						enemyIndex.isFrontKicked = true
-						enemyIndex.health = enemyIndex.health - (player.kickDamage - 6)
-						entityCollider:setGhost(player.boundingbox.foot_box) -- Turn the collision box off until you kick again
 						
-						if checkCollisionContainers({enemyIndex.boundingbox.entity_bottom_right}, isEnemy) then  --If you front kick them on the right they'll go left...
-							enemyIndex.velocity.x = enemyIndex.velocity.x - 480	
-							enemyIndex.velocity.y = enemyIndex.velocity.y - 5
-							enemyIndex.isOnGround = false
-						else  --If you front kick them on the left they'll go right...
-							enemyIndex.velocity.x = enemyIndex.velocity.x + 480	
-							enemyIndex.velocity.y = enemyIndex.velocity.y - 5
-							enemyIndex.isOnGround = false
+						if not enemyIndex.dodged then --If they haven't dodged
+							enemyIndex.isFrontKicked = true
+							enemyIndex.health = enemyIndex.health - (player.kickDamage - 6)							
+						end
+							entityCollider:setGhost(player.boundingbox.foot_box) -- Turn the collision box off until you kick again
+
+						if not enemyIndex.dodged then
+							if checkCollisionContainers({enemyIndex.boundingbox.entity_bottom_right}, isEnemy) then  --If you front kick them on the right they'll go left...
+								enemyIndex.velocity.x = enemyIndex.velocity.x - 480	
+								enemyIndex.velocity.y = enemyIndex.velocity.y - 5
+								enemyIndex.isOnGround = false
+							else  --If you front kick them on the left they'll go right...
+								enemyIndex.velocity.x = enemyIndex.velocity.x + 480	
+								enemyIndex.velocity.y = enemyIndex.velocity.y - 5
+								enemyIndex.isOnGround = false
+							end
 						end
 					end
 				end
@@ -754,18 +796,18 @@ function load_graphics()
 	background = love.graphics.newImage("/assets/Background.jpg")
 	playersheet = love.graphics.newImage("/assets/player_sheet.png")
 	enemygrid = anim8.newGrid(90,100, enemysheet:getWidth(), enemysheet:getHeight())
-	playergrid = anim8.newGrid(99, 110, playersheet:getWidth(), playersheet:getHeight())
-	standstill = anim8.newAnimation(playergrid(1,1), 0.1)
-	walkanimation = anim8.newAnimation(playergrid(1, 1), 0.1)	
+	playergrid = anim8.newGrid(99, 110, playersheet:getWidth(), playersheet:getHeight(), 3, 0)
+	
 
 	--Medium Enemy animation loads and designations
 	mediumenemystandstill = anim8.newAnimation(enemygrid(3,3, 2,4, 1,5, 4,3, 3,4 ), 0.3)
+	mediumenemyfightingstance = anim8.newAnimation(enemygrid(5,5), 0.3)
 	mediumenemydance = anim8.newAnimation(enemygrid('2-5',1,'2-2', 2,'3-4', 2), 0.14)
 	mediumenemyrunanimation = anim8.newAnimation(enemygrid(8,2,7,3,6,4,10,1,9,2,8,3,7,4,6,5,11,1,10,2,9,3,8,4,7,5,11,2,10,3,9,4,8,5), 0.04)
 	mediumenemywalkanimation = anim8.newAnimation(enemygrid(1,7,3,6,2,7,1,8,4,6,3,7,2,8,1,9,5,6,4,7,3,8,2,9), 0.1)
 	mediumenemystunned = anim8.newAnimation(enemygrid(11,3,	10,4,9,5,11,4,10,5,	11,5,1,6,2,6), 0.1)
 	mediumenemyjabbed_l1 = anim8.newAnimation(enemygrid(2,5, 5,3, 4,4, 4,4, 5,3, 2,5), 0.03, 'pause')	
-	mediumenemyjabbed_l2 = anim8.newAnimation(enemygrid(2,5, 5,3, 4,4, 3,5,  5,4 , 5,4,5,4,  3,5, 4,4, 5,3, 2,5), 0.03, 'pause') -- 5,4's in the middle are neck snapped back
+	mediumenemyjabbed_l2 = anim8.newAnimation(enemygrid(2,5, 5,3, 4,4, 3,5, 5,4, 5,4,5,4, 3,5, 4,4, 5,3, 2,5), 0.03, 'pause') -- 5,4's in the middle are neck snapped back
 	mediumenemyshinkick_l1 = anim8.newAnimation(enemygrid(3,2, 3,2, 4,2,4,2,4,2, 3,2), 0.2, 'pause')
 	mediumenemydecked_l1 = anim8.newAnimation(enemygrid(1,1, 2,1, 1,2, 2,1, 1,1), 0.05, 'pause')
 	mediumenemydecked_l2 = anim8.newAnimation(enemygrid(1,1, 2,1, 1,2, 2,2, 3,1, 2,2, 1,2, 2,1, 1,1), .046, 'pause')
@@ -783,10 +825,10 @@ function create_player()
 	player.jabspeed = .18
 	player.crossspeed = .18
 	player.animations = {}
-	player.animations.standstill = standstill:clone()
-	player.animations.walkanimation = walkanimation:clone()
-	player.animations.jab = anim8.newAnimation(playergrid(2,1, 1,2, 1, 1), {0.03, player.jabspeed/2 +8,0.03} )
-	player.animations.cross = anim8.newAnimation(playergrid(4, 1), 0.4, 'pause')
+	player.animations.standstill = anim8.newAnimation(playergrid(1,1, 2,1, 1,2), 0.3)
+	player.animations.walkanimation = anim8.newAnimation(playergrid(5,2, 1,3, 2,3, 3,3, 4,3, 5,3), 0.12)
+	player.animations.jab = anim8.newAnimation(playergrid(3,1, 4,1, 4,1), {0.03, player.jabspeed/2 +8,0.03} )
+	player.animations.cross = anim8.newAnimation(playergrid(4, 2), 0.4, 'pause')
 
 
 	player.punchDamage = 25
@@ -796,7 +838,7 @@ function create_player()
 
 	player.isOnGround = false
 	player.action = 'idle'
-	player.speed = 400
+	player.speed = 600
 	
 	player.hookspeed = .6
 	player.kickspeed = .3
@@ -866,6 +908,7 @@ function create_world()
 	world.debugtext = {}
 	world.debugtext.level = {}
 	world.debugtext.entity = {}
+	world.dancetime = false
 
 	--Debug flags
 	world.debug = {}
@@ -888,8 +931,8 @@ function create_world()
 	world.terminalVelocity = 150
 	world.windResistance = 20
 	world.spawnLocations = {{215, 214},
-							--{509, 236},
-							--{403, 510}, 
+							{509, 236},
+							{403, 510},
 							--{993, 227},
 							{191, 497} }
 
@@ -915,6 +958,7 @@ function createEnemies(number)
 			enemy.health = 150
 			enemy.animation.walkanimation = mediumenemywalkanimation:clone()
 			enemy.animation.standstillanimation = mediumenemystandstill:clone()
+			enemy.animation.fightingstance = mediumenemyfightingstance:clone()
 			enemy.animation.runanimation = mediumenemyrunanimation:clone()
 			enemy.animation.stunned = mediumenemystunned:clone()
 			enemy.animation.jabbed_l1 = mediumenemyjabbed_l1:clone()
@@ -922,6 +966,7 @@ function createEnemies(number)
 			enemy.animation.shinkick_l1 = mediumenemyshinkick_l1:clone()
 			enemy.animation.decked_l1 = mediumenemydecked_l1:clone()
 			enemy.animation.frontkick_l1 = mediumenemyfrontkick_l1:clone()
+			enemy.animation.dance = mediumenemydance:clone()
 		elseif enemy.type == 'hard' then
 			enemy.health = 250
 			enemy.animation.walkanimation = hardenemywalkanimation:clone()
@@ -935,12 +980,15 @@ function createEnemies(number)
 		enemy.debug = true
 		enemy.speed = 400	
 		enemy.stoppingSpeed = 12
+		enemy.canDodge = {'jab', 'frontkick', 'kick', 'hook', 'cross'}
+		enemy.dodged = false
+
 
 		--Enemy States
 		enemy.isFacingRight = true
 		enemy.action = false
 		enemy.isMoving = false
-		enemy.isAnimationFlipped = false
+		enemy.isAnimationFlipped = false		
 		enemy.isAttacking = false
 		enemy.isAlive = true
 		enemy.isPunching = false
@@ -956,15 +1004,20 @@ function createEnemies(number)
 
 
 		--Enemy AI States
-		enemy.wantsToRun = true		
-		enemy.talking = false
+		enemy.state = {}
+		enemy.state.wantsToRun = false		
+		enemy.state.talking = false
+		enemy.state.isThreatened = false
+		enemy.state.isFighting = false
 		enemy.player_tracker = {}
 		enemy.player_tracker.playerSpotted = false
-		enemy.player_tracker.near = false
+		enemy.player_tracker.nearby = false
+		enemy.player_tracker.isOnTheRight = false
+		enemy.player_tracker.isBelowPlayer = false
 		enemy.player_tracker.isScary = false
 		enemy.player_tracker.distanceToPlayer_x = 0
 		enemy.player_tracker.distanceToPlayer_y = 0
-		enemy.isAggresive = false
+		
 
 
 		--Location and speed variables

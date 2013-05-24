@@ -57,7 +57,7 @@ function doEnemyProcessing(dt, enemies)
 				enemyindex.isRunning = false
 				enemyindex.velocity.x = enemyindex.velocity.x + enemyindex.speed*dt
 				doEnemyAnimation("walk", enemyindex)
-			elseif enemyindex.velocity.x >= enemyindex.maxspeed and enemyindex.velocity.x < enemyindex.maxspeed*2  and enemyindex.wantsToRun then-- Running		
+			elseif enemyindex.velocity.x >= enemyindex.maxspeed and enemyindex.velocity.x < enemyindex.maxspeed*2  and enemyindex.state.wantsToRun then-- Running		
 				enemyindex.isRunning = true
 				enemyindex.velocity.x = enemyindex.velocity.x + enemyindex.speed*dt
 				doEnemyAnimation("run", enemyindex)
@@ -76,7 +76,7 @@ function doEnemyProcessing(dt, enemies)
 				enemyindex.isRunning = false
 				enemyindex.velocity.x = enemyindex.velocity.x - enemyindex.speed*dt
 				doEnemyAnimation("walk", enemyindex, dt)
-			elseif enemyindex.velocity.x <= -enemyindex.maxspeed and enemyindex.velocity.x > -enemyindex.maxspeed*2  and enemyindex.wantsToRun then-- Running		
+			elseif enemyindex.velocity.x <= -enemyindex.maxspeed and enemyindex.velocity.x > -enemyindex.maxspeed*2  and enemyindex.state.wantsToRun then-- Running		
 				enemyindex.isRunning = true
 				enemyindex.velocity.x = enemyindex.velocity.x - enemyindex.speed*dt
 				doEnemyAnimation("run", enemyindex, dt)
@@ -91,10 +91,19 @@ function doEnemyProcessing(dt, enemies)
 
 		applyForces(dt,enemyindex)
 
-		if not enemyindex.isMoving then
+
+
+		--Fighting Stance
+		if enemyindex.state.isFighting then
+			doEnemyAnimation("fighting", enemyindex)
+			enemyindex.animation.fightingstance:update(dt)
+		end
+
+		if not enemyindex.isMoving and not enemyindex.state.isFighting then
 			doEnemyAnimation("idle", enemyindex, dt)
 			enemyindex.animation.standstillanimation:update(dt)
 		end
+
 
 		--Punch Animations
 		if enemyindex.isJabbed then
@@ -149,6 +158,13 @@ function doEnemyProcessing(dt, enemies)
 			end
 		end
 
+		--Dancing
+		if world.dancetime then
+			doEnemyAnimation("dance", enemyindex)
+			enemyindex.animation.dance:update(dt)
+		end
+
+
 		
 		snapEnemyBoundingBoxes(enemyindex)
 	end  --Breaking out of enemies container
@@ -160,7 +176,6 @@ function doEnemyAnimation(action, indexie)
 		if indexie.isMoving then		
 			indexie.animation_state = 'walk'
 		end
-		
 		
 		if indexie.isFacingRight == true and indexie.isAnimationFlipped then
 			indexie.x = indexie.x + indexie.turnoffset
@@ -177,17 +192,28 @@ function doEnemyAnimation(action, indexie)
 		end
 		
 
+
 		if action == 'fall' then
 			indexie.animation_state = 'idle'
 		end
 
 		if action == 'idle' then
-			indexie.animation_state = 'idle'	
+			indexie.animation_state = 'idle'
+		end
+
+		if action == 'fighting' then
+			indexie.animation_state = 'fighting'
 		end
 
 		if action == 'run' then
 			indexie.animation_state = 'run'
 		end
+
+		if action == 'dance' then
+			indexie.animation_state = 'dance'
+		end
+
+		
 
 		if action == 'punched' then
 			indexie.animation_state = 'punched'
