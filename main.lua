@@ -1,7 +1,9 @@
-local anim8 = require ("anim8")
-HC = require 'hardoncollider'
+local anim8 = require ("/libraries/anim8")
+HC = require '/libraries/hardoncollider'
+local Camera = require("/libraries/camera")
 local AI = require ("ai")
 local enemies = require("enemies")
+
 
 function love.load()
 	--ScreenWidth
@@ -19,6 +21,7 @@ function love.load()
 	Collider = HC(100, ground_collision, ground_collision_stop)
 	entityCollider = HC(100, entity_collision, entity_collision_stop)
 
+
 	--LoadSpritesheets and create animations
 	load_graphics()
 	--Create Player Variables
@@ -27,6 +30,7 @@ function love.load()
 
 	--Create Enemies Table
 	enemies = {}
+	cam = Camera(screenwidth /2, screenheight/2, 1.1)
 	
 	
 end  -- End Load Function
@@ -36,6 +40,7 @@ end  -- End Load Function
 
 function love.update(dt)
 	checkEnemyRemoval(enemies)
+
 
     if #world.debugtext.level > 20 then
         table.remove(world.debugtext.level, 1)
@@ -72,14 +77,41 @@ function love.update(dt)
 	doEnemyProcessing(dt, enemies)
 	Collider:update(dt)
     entityCollider:update(dt)
+    updateCamera(dt)
 
 
 end  --End Updated function
 
+function updateCamera(dt)
+
+	if not world.inACinematic then
+		if player.x < 515 then
+			cam:lookAt(515, player.y - 120)
+		elseif player.x >= 716 then
+			cam:lookAt(716, player.y - 120)
+		else
+			cam:lookAt(player.x, player.y - 120)
+		end
+	end
+
+end
+
+
 function love.draw()
+	cam:attach()  --Attach the camera
+
 	--Draw Background and UI Elements
 	love.graphics.draw(background, 0, 0)
-	love.graphics.print("Player Energy: " .. tostring(player.energy), 800, 0)
+
+	love.graphics.setColor(1000,0,0, 255)
+	if player.isFacingRight then  --Draw player energy	
+		love.graphics.print("Energy: " .. tostring(player.energy), player.x+26, player.y+15, math.rad(90))
+	else		
+		love.graphics.print("Energy: " .. tostring(player.energy), player.x + 90, player.y+15, math.rad(90))
+	end
+
+	--Reset colors for the rest of the drawing
+	love.graphics.setColor(255,255,255, 255)
 
 	--Draw Player variables if debug flag is set
 	if world.debug.player then
@@ -91,25 +123,21 @@ function love.draw()
 		--love.graphics.print("Animtimer: " .. tostring(player.animTimer), 340,90, math.rad(30))
 	end
 
-	--Draw Player
+	--Draw Player animations
 	if player.animation == 'walk' and not player.isAttacking then
 		player.animations.walkanimation:draw(playersheet, player.x,player.y)
 	elseif player.animation == 'idle' and not player.isAttacking then
 		player.animations.standstill:draw(playersheet, player.x,player.y)
-	elseif player.isAttacking and player.action == "jab" then	--Draw jab animation
-		player.animations.jab:draw(playersheet, player.x, player.y) --Draw cross animation
+	elseif player.isAttacking and player.action == "jab" then
+		player.animations.jab:draw(playersheet, player.x, player.y)
 	elseif player.isAttacking and player.action == "cross" then
 		player.animations.cross:draw(playersheet, player.x, player.y)
 	elseif player.isAttacking and player.action == "hook" then
 		player.animations.cross:draw(playersheet, player.x, player.y)
-	elseif player.isAttacking and player.isFacingRight and player.action == "kick" then
-		love.graphics.print("Kick", player.x + 38, player.y + player.boundingbox.offset_moveto_foot_y-6) ----Draw "Kick" on shin kick
-	elseif player.isAttacking and not player.isFacingRight and player.action == "kick" then
-		love.graphics.print("Kick", player.x - 8, player.y + player.boundingbox.offset_moveto_foot_y-6)
-	elseif player.isAttacking and player.isFacingRight and player.action == "frontkick" then
-		love.graphics.print("FKick", player.x + 38, player.y + player.boundingbox.offset_moveto_foot_y-6) -- --Draw "FKick" on front kick
-	elseif player.isAttacking and not player.isFacingRight and player.action == "frontkick" then
-		love.graphics.print("FKick", player.x - 8, player.y + player.boundingbox.offset_moveto_foot_y-6)
+	elseif player.isAttacking and player.action == "kick" then
+		player.animations.kick:draw(playersheet, player.x, player.y)
+	elseif player.isAttacking and player.action == "frontkick" then
+		player.animations.frontkick:draw(playersheet, player.x, player.y)
 	end
 	
 	--Draw Enemies
@@ -212,6 +240,7 @@ function love.draw()
     	end
 
 	end
+	cam:detach()  -- Detach the camera
 
 end   --End Draw Function
 
@@ -242,6 +271,9 @@ function love.keypressed(key)
 	end
 
 
+	if key == "c" then
+		cam:zoomTo(.5)
+	end
 
 	if key == "tab" then
 		local state = not love.mouse.isVisible()
@@ -422,6 +454,26 @@ function doPlayerAnimation(key,dt)
 end
 
 function playerAttack(attacktype, dt)
+
+	local function forwardMotionOnAction(typeofaction)
+		local speed = 0
+		if typeofaction == 'kick' then
+			speed = 60
+		elseif typeofaction == 'frontkick' then
+			speed = 80
+		elseif typeofaction == 'hook' then
+			speed = 80
+		elseif typeofaction == 'cross' then
+			speed = 45
+		end
+
+		if player.isFacingRight then
+			player.velocity.x = player.velocity.x + speed
+		else
+			player.velocity.x = player.velocity.x - speed
+		end
+
+	end
 	
 	local function isTheShapeAGhost(colliderInstance, shape)
 		for i, value in pairs(colliderInstance._active_shapes) do -- Iterate over active
@@ -465,6 +517,7 @@ function playerAttack(attacktype, dt)
 
 	if attacktype == "cross" and player.isAttacking == false then
 		player.animations.cross:gotoFrame(1)
+		forwardMotionOnAction('cross') --Give the player some forward motion when they hook punch
 		doAttack(player.crossspeed, player.boundingbox.fist_box, false)
 	elseif attacktype == "cross" and player.isAttacking and love.timer.getTime() > player.animTimer then		
 		doAttack(player.crossspeed,player.boundingbox.fist_box, true)
@@ -472,24 +525,27 @@ function playerAttack(attacktype, dt)
 
 	if attacktype == 'hook' and player.isAttacking == false and love.timer.getTime() > player.animTimer then
 		player.animations.cross:gotoFrame(1)
+		forwardMotionOnAction('hook') --Give the player some forward motion when they hook punch
 		doAttack(player.hookspeed,player.boundingbox.fist_box, false)
 	elseif attacktype == 'hook' and player.isAttacking == true and love.timer.getTime() > player.animTimer then
 		doAttack(player.hookspeed,player.boundingbox.fist_box, true)
 	end
 
 	if attacktype == 'kick' and player.isAttacking == false then
+		player.animations.kick:gotoFrame(1)		
+		forwardMotionOnAction('kick') --Give the player some forward motion when they kick
 		doAttack(player.kickspeed, player.boundingbox.foot_box, false)
 	elseif attacktype == 'kick' and player.isAttacking == true and love.timer.getTime() > player.animTimer then
 		doAttack(player.kickspeed, player.boundingbox.foot_box, true)
 	end
 
 	if attacktype == 'frontkick' and player.isAttacking == false then
+		player.animations.frontkick:gotoFrame(1)		
+		forwardMotionOnAction('frontkick') --Give the player some forward motion when they frontkick
 		doAttack(player.frontkickspeed, player.boundingbox.foot_box, false)
 	elseif attacktype == 'frontkick' and player.isAttacking == true and love.timer.getTime() > player.animTimer then
 		doAttack(player.frontkickspeed, player.boundingbox.foot_box, true)
 	end
-
-
 
 end
 
@@ -793,7 +849,7 @@ end
 function load_graphics()
 	--Load Graphics and init animations	
 	enemysheet = love.graphics.newImage("/assets/enemy_sheet.png")
-	background = love.graphics.newImage("/assets/Background.jpg")
+	background = love.graphics.newImage("/assets/Background.png")
 	playersheet = love.graphics.newImage("/assets/player_sheet.png")
 	enemygrid = anim8.newGrid(90,100, enemysheet:getWidth(), enemysheet:getHeight())
 	playergrid = anim8.newGrid(99, 110, playersheet:getWidth(), playersheet:getHeight(), 3, 0)
@@ -824,11 +880,16 @@ function create_player()
 	player.y = 400
 	player.jabspeed = .18
 	player.crossspeed = .18
+	player.hookspeed = .6
+	player.kickspeed = .3
+	player.frontkickspeed = .6
 	player.animations = {}
 	player.animations.standstill = anim8.newAnimation(playergrid(1,1, 2,1, 1,2), 0.3)
-	player.animations.walkanimation = anim8.newAnimation(playergrid(5,2, 1,3, 2,3, 3,3, 4,3, 5,3), 0.12)
+	player.animations.walkanimation = anim8.newAnimation(playergrid(3,3, 2,4, 4,3, 3,4, 5,3, 4,4), 0.12)
 	player.animations.jab = anim8.newAnimation(playergrid(3,1, 4,1, 4,1), {0.03, player.jabspeed/2 +8,0.03} )
 	player.animations.cross = anim8.newAnimation(playergrid(4, 2), 0.4, 'pause')
+	player.animations.kick = anim8.newAnimation(playergrid(5,2, 1,3), {player.kickspeed/2,player.kickspeed/2 + .5} )
+	player.animations.frontkick = anim8.newAnimation(playergrid(2,3, 1,4, 2,3), {0.08,player.frontkickspeed/2-.2, player.frontkickspeed/2+.4})
 
 
 	player.punchDamage = 25
@@ -840,9 +901,7 @@ function create_player()
 	player.action = 'idle'
 	player.speed = 600
 	
-	player.hookspeed = .6
-	player.kickspeed = .3
-	player.frontkickspeed = .8
+
 	player.maxspeed = 180
 	player.stoppingSpeed = 12
 	player.velocity = {}
@@ -886,7 +945,7 @@ function create_player()
 	player.boundingbox.entity_bottom_left = entityCollider:addRectangle(player.x + player.boundingbox.offset_moveto_entity_left_x/2, 
 																		player.y + player.boundingbox.offset_moveto_level_y, player.boundingbox.entity_sizeX, player.boundingbox.entity_sizeY )
 	player.boundingbox.fist_box = entityCollider:addRectangle(player.x + player.boundingbox.offset_moveto_fist_x, player.y + player.boundingbox.offset_moveto_fist_y, 20, 15)
-	player.boundingbox.foot_box = entityCollider:addRectangle(player.x + player.boundingbox.offset_moveto_fist_x, player.y + player.boundingbox.offset_moveto_foot_y, 25, 15)
+	player.boundingbox.foot_box = entityCollider:addRectangle(player.x + player.boundingbox.offset_moveto_fist_x, player.y + player.boundingbox.offset_moveto_foot_y, 15, 15)
 	--Ghost fist box until player attacks - prevents needless collision calls
 
 	player.boundingbox.container = {player.boundingbox.entity_top_left, player.boundingbox.entity_top_right,
@@ -909,6 +968,7 @@ function create_world()
 	world.debugtext.level = {}
 	world.debugtext.entity = {}
 	world.dancetime = false
+	world.inACinematic = false
 
 	--Debug flags
 	world.debug = {}

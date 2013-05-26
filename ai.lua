@@ -117,6 +117,13 @@ local function battleTime(enemyindex, player)
 	end
 
 	local function shouldIAttack(enemyindex, player)
+		local chanceToAttack = math.random(100)
+
+		if chanceToAttack > 70 then
+			
+		end
+
+
 	end
 
 	if enemyindex.player_tracker.nearby then
@@ -124,6 +131,7 @@ local function battleTime(enemyindex, player)
 			amIGoodEnoughToDodge(enemyindex, player)
 
 		elseif shouldIAttack then
+
 
 		elseif shouldIKeepFighting then
 		
