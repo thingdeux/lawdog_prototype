@@ -50,7 +50,7 @@ function doEnemyProcessing(dt, enemies)
 	
 	for i, enemyindex in ipairs(enemies) do
 		--Process Enemy Thought
-		think(enemyindex, player)
+		think(enemyindex, player, enemies)
 
 		if enemyindex.isFacingRight and enemyindex.isMoving then  -- Enemy walking right
 			if enemyindex.velocity.x < enemyindex.maxspeed then

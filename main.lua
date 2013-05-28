@@ -1004,10 +1004,14 @@ function createEnemies(number)
 	
 	for i = 1, number, 1 do 
 		local enemy = {}
+		local brain = { 'Coward', 'DumbPunk', 'SneakyDouche',
+						'CautiousKitty', 'SneakyDouche', 'MeatBag',
+						'SmartieMcFarty'}
 		math.random()
 		enemy.spawn = math.random(#world.spawnLocations)
 
 		enemy.type = 'medium'
+		enemy.personality = 'Coward'
 		enemy.animation = {}
 
 		if enemy.type == 'weak' then
@@ -1069,6 +1073,7 @@ function createEnemies(number)
 		enemy.state.talking = false
 		enemy.state.isThreatened = false
 		enemy.state.isFighting = false
+		enemy.state.closeToAlly = false
 		enemy.player_tracker = {}
 		enemy.player_tracker.playerSpotted = false
 		enemy.player_tracker.nearby = false
