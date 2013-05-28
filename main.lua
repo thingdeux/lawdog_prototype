@@ -272,7 +272,9 @@ function love.keypressed(key)
 
 
 	if key == "c" then
-		cam:zoomTo(.5)
+		cam:zoomTo(2)
+	elseif key == "g" then
+		cam:zoomTo(1)
 	end
 
 	if key == "tab" then
@@ -286,27 +288,28 @@ function love.keypressed(key)
 		love.event.push("quit") -- Quit the game
 	end
 
-	
-	if key == "e" and (love.keyboard.isDown("a") or love.keyboard.isDown("d") ) then -- Hook
-		player.action = "hook"
-		player.energy = player.energy - 2
-	elseif key == " " and (love.keyboard.isDown("a") or love.keyboard.isDown("d") ) then -- Front Kick
-		player.action = "frontkick"
-		player.energy = player.energy - 2
-	elseif key == "e" and player.action == "jab" then
-		player.action = "cross"
-		player.isAttacking = false
-		player.energy = player.energy - 1
-	elseif key == "e" and player.action == "cross" then
-		player.action = "jab"
-		player.isAttacking = false
-		player.energy = player.energy - 1
-	elseif key == "e" then
-		player.action = "jab"
-		player.energy = player.energy - 1
-	elseif key == " " then  --Spacebar
-		player.action = "kick"
-		player.energy = player.energy - 0.5
+	if player.energy > 0 then
+		if key == "e" and (love.keyboard.isDown("a") or love.keyboard.isDown("d") ) then -- Hook
+			player.action = "hook"
+			player.energy = player.energy - 2
+		elseif key == " " and (love.keyboard.isDown("a") or love.keyboard.isDown("d") ) then -- Front Kick
+			player.action = "frontkick"
+			player.energy = player.energy - 2
+		elseif key == "e" and player.action == "jab" then
+			player.action = "cross"
+			player.isAttacking = false
+			player.energy = player.energy - 1
+		elseif key == "e" and player.action == "cross" then
+			player.action = "jab"
+			player.isAttacking = false
+			player.energy = player.energy - 1
+		elseif key == "e" then
+			player.action = "jab"
+			player.energy = player.energy - 1
+		elseif key == " " then  --Spacebar
+			player.action = "kick"
+			player.energy = player.energy - 0.5
+		end
 	end
 
 	if key == "f" then
@@ -882,14 +885,14 @@ function create_player()
 	player.crossspeed = .18
 	player.hookspeed = .6
 	player.kickspeed = .3
-	player.frontkickspeed = .6
+	player.frontkickspeed = .4
 	player.animations = {}
 	player.animations.standstill = anim8.newAnimation(playergrid(1,1, 2,1, 1,2), 0.3)
 	player.animations.walkanimation = anim8.newAnimation(playergrid(3,3, 2,4, 4,3, 3,4, 5,3, 4,4), 0.12)
 	player.animations.jab = anim8.newAnimation(playergrid(3,1, 4,1, 4,1), {0.03, player.jabspeed/2 +8,0.03} )
 	player.animations.cross = anim8.newAnimation(playergrid(4, 2), 0.4, 'pause')
 	player.animations.kick = anim8.newAnimation(playergrid(5,2, 1,3), {player.kickspeed/2,player.kickspeed/2 + .5} )
-	player.animations.frontkick = anim8.newAnimation(playergrid(2,3, 1,4, 2,3), {0.08,player.frontkickspeed/2-.2, player.frontkickspeed/2+.4})
+	player.animations.frontkick = anim8.newAnimation(playergrid(2,3, 1,4, 2,3), {0.08,player.frontkickspeed/2, player.frontkickspeed/2})
 
 
 	player.punchDamage = 25
@@ -973,7 +976,7 @@ function create_world()
 	--Debug flags
 	world.debug = {}
 	world.debug.player = false
-	world.debug.enemies = false
+	world.debug.enemies = true
 	world.debug.collision_level = false
 	world.debug.collision_entity = false
 
@@ -1074,6 +1077,7 @@ function createEnemies(number)
 		enemy.state.isThreatened = false
 		enemy.state.isFighting = false
 		enemy.state.closeToAlly = false
+		enemy.state.isFacingPlayer = false
 		enemy.player_tracker = {}
 		enemy.player_tracker.playerSpotted = false
 		enemy.player_tracker.nearby = false

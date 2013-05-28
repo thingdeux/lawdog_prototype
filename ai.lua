@@ -9,6 +9,14 @@ local function gaugeDanger(enemyindex, player) --If the player has been spotted 
 
 end
 
+local function facePlayer(enemyindex, player)
+	if enemyindex.player_tracker.isOnRight then
+		enemyindex.isFacingRight = true		
+	elseif not enemyindex.player_tracker.isOnRight then
+		enemyindex.isFacingRight = false		
+	end
+end
+
 local function within(y, y1, distance)
 	if y >= y1 - distance and y <= y1 + distance then
 		return true
@@ -25,8 +33,7 @@ local function isNear(indexA, indexB , distance)
 
 
 	if within(indexA.y, indexB.y, 10) then
-		if within(indexA.x, indexB.x, 20) then
- 			print("A: " .. tostring(indexA.x) .. "B:" .. tostring(indexB.x))
+		if within(indexA.x, indexB.x, 150) then
 			indexA.state.closeToAlly = true
 			indexB.state.closeToAlly = true
 			return true
@@ -41,17 +48,19 @@ end
 
 local function runFromPlayer(enemyindex, player)
 
-	if enemy.player_tracker.isOnTheRight then
-		if enemy.isFacingRight then
-			enemy.isFacingRight = false
-		elseif not enemy.player_tracker.isOnTheRight then
-			if not enemy.isFacingRight then
-				enemy.isFacingRight = true
-			end
+	if enemyindex.player_tracker.isOnTheRight then -- If player is to the right of enemy
+		if enemyindex.isFacingRight then --And enemy is facing right
+			enemyindex.isFacingRight = false  --Turn around
 		end
-		enemy.wantsToRun = true
-		enemy.isMoving = true
+	elseif not enemyindex.player_tracker.isOnTheRight then --If player is on the left
+		if not enemyindex.isFacingRight then --If enemy is facing him
+			enemyindex.isFacingRight = true --Turn around
+		end
+		
 	end
+
+	enemyindex.state.wantsToRun = true
+	enemyindex.isMoving = true
 
 
 
@@ -62,8 +71,7 @@ local function checkDistanceToPlayer(enemyindex, player)
 		--If the enemy gets within 200 pixels of the player and the enemy is facing the right way set spotted to yes.
 		if enemyindex.isFacingRight then 
 			if enemyindex.player_tracker.isOnTheRight and 
-				enemyindex.player_tracker.distanceToPlayer_x <= 200 and enemyindex.player_tracker.distanceToPlayer_x > 0 then
-
+				enemyindex.player_tracker.distanceToPlayer_x <= 200 and enemyindex.player_tracker.distanceToPlayer_x >= 0 then				
 				enemyindex.player_tracker.playerSpotted = true
 			else
 				if enemyindex.player_tracker.playerSpotted then
@@ -72,7 +80,7 @@ local function checkDistanceToPlayer(enemyindex, player)
 			end
 		elseif not enemyindex.isFacingRight then
 			if not enemyindex.player_tracker.isOnTheRight and
-				enemyindex.player_tracker.distanceToPlayer_x >= -300 and enemyindex.player_tracker.distanceToPlayer_x < -50 then				
+				enemyindex.player_tracker.distanceToPlayer_x >= -300 and enemyindex.player_tracker.distanceToPlayer_x <= -50 then				
 				enemyindex.player_tracker.playerSpotted = true
 			else
 				if enemyindex.player_tracker.playerSpotted then
@@ -224,11 +232,18 @@ function think(enemyindex, player, enemies)
 			elseif not enemyindex.player_tracker.nearby then
 				--closeDistanceToPlayer(enemyindex, player)
 			end
-		end
+		end	
 
 	elseif not enemyindex.player_tracker.playerSpotted then  --If the enemy hasn't spotted the player
 		checkDistanceToPlayer(enemyindex, player)			--Check the distance to the player
-	end	
+		if enemyindex.isJabbed or enemyindex.isKicked or
+		   enemyindex.isDecked or enemyindex.isFrontKicked then
+		   enemyindex.state.isThreatened = true
+		   facePlayer(enemyindex, player)
+
+		end
+
+	end
 
 end
 
@@ -242,16 +257,18 @@ function coward(enemyindex, player, enemies)
 	--Check to see if someone is near
 	for i, enemy in ipairs(enemies) do 
 		if #enemies > 1 then
-			doIHaveBackup = isNear(enemyindex, enemy)
+			if enemy ~= enemyindex then
+				doIHaveBackup = isNear(enemyindex, enemy)
+			end
 		end
 	end
 
 	if doIHaveBackup then
-		--battleTime(enemyindex, player)
-		print ("I have backup")
+		battleTime(enemyindex, player)
+		
 	elseif not doIHaveBackup then
-		--runFromPlayer(enemyindex, player)
-		print ("I'm running")
+		runFromPlayer(enemyindex, player)
+		--print ("I'm running")
 	end
 
 
@@ -292,9 +309,9 @@ DumbPunk - Runs at the player with flurries of punches
 	If threatened runs full bore throwing punches - does not stop for go does not collect 200 dollahs
 
 MeatBag - Used to drain the players energy...takes a ton of hits
-	Occasionally throws punches at random and takes lots of damage
+	Occasionally throws punches at random and takes lots of damage - best to avoid
 
-SneakyDouche - Tries to get behind the player and hold them
+SneakyDouche - Tries to get behind the player and hold them so others can rail on em
 
 SmartieMcFarty - Smart enemy
 
