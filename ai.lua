@@ -214,6 +214,20 @@ end
 
 function think(enemyindex, player, enemies)
 
+	if enemyindex.state.isThreatened then --If the enemy feels threatened
+
+		if enemyindex.personality == 'Coward' then
+			coward(enemyindex, player, enemies)
+		end
+
+		if enemyindex.player_tracker.nearby then
+			--battleTime(enemyindex, player)				
+		elseif not enemyindex.player_tracker.nearby then
+			--closeDistanceToPlayer(enemyindex, player)
+		end
+	end	
+
+
 	if enemyindex.player_tracker.playerSpotted then  --If the player has been spotted
 		checkDistanceToPlayer(enemyindex, player)
 		
@@ -221,25 +235,13 @@ function think(enemyindex, player, enemies)
 			enemyindex.state.isThreatened = gaugeDanger(enemyindex, player)
 		end
 
-		if enemyindex.state.isThreatened then --If the enemy feels threatened
-
-			if enemyindex.personality == 'Coward' then
-				coward(enemyindex, player, enemies)
-			end
-
-			if enemyindex.player_tracker.nearby then
-				--battleTime(enemyindex, player)				
-			elseif not enemyindex.player_tracker.nearby then
-				--closeDistanceToPlayer(enemyindex, player)
-			end
-		end	
 
 	elseif not enemyindex.player_tracker.playerSpotted then  --If the enemy hasn't spotted the player
 		checkDistanceToPlayer(enemyindex, player)			--Check the distance to the player
 		if enemyindex.isJabbed or enemyindex.isKicked or
 		   enemyindex.isDecked or enemyindex.isFrontKicked then
 		   enemyindex.state.isThreatened = true
-		   facePlayer(enemyindex, player)
+		   --facePlayer(enemyindex, player)
 
 		end
 
@@ -268,7 +270,7 @@ function coward(enemyindex, player, enemies)
 		
 	elseif not doIHaveBackup then
 		runFromPlayer(enemyindex, player)
-		--print ("I'm running")
+		enemyindex.state.isFighting = false		
 	end
 
 
