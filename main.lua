@@ -34,8 +34,7 @@ function love.load()
 end  -- End Load Function
 
 function love.update(dt)
-	checkEnemyRemoval(enemies)
-
+	checkEnemyRemoval(enemies)	
 
     if #world.debugtext.level > 20 then
         table.remove(world.debugtext.level, 1)
@@ -97,7 +96,7 @@ end
 
 
 function love.draw()
-	--cam:attach()  --Attach the camera
+	cam:attach()  --Attach the camera
 
 	--Draw Background and UI Elements
 	love.graphics.draw(background, 0, 0)
@@ -107,13 +106,15 @@ function love.draw()
 	love.graphics.print("F2 Turns on enemy debug information", screenwidth - 300, 80)
 	love.graphics.print("F3 Turns on collision level debug information", screenwidth - 300, 100)
 	love.graphics.print("F4 Turns on collision entity debug information", screenwidth - 300, 120)
-	love.graphics.print("F5 is a surprise", screenwidth - 300, 140)
+	love.graphics.print("F6 Turns off AI", screenwidth - 300, 140)
 
 	love.graphics.setColor(1000,0,0, 255)
 	if player.isFacingRight then  --Draw player energy	
-		love.graphics.print("Energy: " .. tostring(player.energy), player.x+26, player.y+15, math.rad(90))
+		love.graphics.print("Energy: " .. tostring(player.energy), player.x+16, player.y+15, math.rad(90))
+		love.graphics.print("Health: " .. tostring(player.health), player.x+26, player.y+15, math.rad(90))
 	else		
 		love.graphics.print("Energy: " .. tostring(player.energy), player.x + 90, player.y+15, math.rad(90))
+		love.graphics.print("Health: " .. tostring(player.health), player.x+100, player.y+15, math.rad(90))
 	end
 
 	--Reset colors for the rest of the drawing
@@ -124,8 +125,7 @@ function love.draw()
 		love.graphics.print("Velocity: " .. tostring(player.velocity.x), 340,40)
 		love.graphics.print("Status: " .. tostring(player.animations.jab.status), 340,50)
 		love.graphics.print("isAttacking: " .. tostring(player.isAttacking), 340,60)
-		love.graphics.print("Player X: " .. tostring(player.x) .. "Player Y: " .. tostring(player.y), 340,70)
-		--love.graphics.print("Action: " .. tostring(player.action), 340,80, math.rad(30))
+		love.graphics.print("Player X: " .. tostring(player.x) .. "Player Y: " .. tostring(player.y), 340,70)		
 		love.graphics.print("Animtimer: " .. tostring(player.animTimer), 340,90, math.rad(30))
 	end
 
@@ -143,12 +143,11 @@ function love.draw()
 	elseif player.isAttacking and player.action == "kick" then
 		player.animations.kick:draw(playersheet, player.x, player.y)
 	elseif player.isAttacking and player.action == "frontkick" then
-		player.animations.frontkick:draw(playersheet, player.x, player.y)
+		player.animations.frontkick:draw(playersheet, player.x, player.y)		
 	end
-	
+
 	--Draw Enemies
 	for i, value in ipairs(enemies) do
-
 		
 		if value.animation_state == 'idle' then
 			value.animation.standstillanimation:draw(enemysheet, value.x,value.y)
@@ -156,6 +155,8 @@ function love.draw()
 			value.animation.walkanimation:draw(enemysheet, value.x, value.y)
 		elseif value.animation_state == 'run' then
 			value.animation.runanimation:draw(enemysheet, value.x, value.y)
+		elseif value.animation_state == 'punch' then
+			value.animation.punch:draw(enemysheet, value.x, value.y)
 		elseif value.animation_state == 'punched' then
 			value.animation.jabbed_l1:draw(enemysheet, value.x, value.y)
 		elseif value.animation_state == 'kicked' then
@@ -168,14 +169,11 @@ function love.draw()
 			value.animation.fightingstance:draw(enemysheet, value.x, value.y)
 		elseif value.animation_state == 'dance' then
 			value.animation.dance:draw(enemysheet, value.x, value.y)
-		end
-
-
+		elseif value.animation_state == 'dodge' then
+			value.animation.dodge:draw(enemysheet, value.x, value.y)
+		end		
 
 		if world.debug.enemies then			
-			--love.graphics.print(string.format("Enemy (%s): VelX: %s - X: %s - facingRight: %s - isAnimationFlipped: %s", i, math.floor(value.velocity.x), math.floor(value.x), tostring(value.isFacingRight), tostring(value.isAnimationFlipped)),0, value.debugtextloc)
-			--love.graphics.print("NumOfEnemies: " .. tostring(#enemies), 800, 10)
-			--love.graphics.print(string.format("DisX: %s DisY: %s", tostring(value.player_tracker.distanceToPlayer_x), tostring(value.player_tracker.distanceToPlayer_y)), value.x-50, value.y)
 			
 			local ix = 0 -- Variable for the state tables to display properly
 			--Check the state table and display any true values above the enemy
@@ -214,8 +212,8 @@ function love.draw()
 		for i, enemy in ipairs(enemies) do
 
 			enemy.boundingbox.entity_main:draw('line')
-			love.graphics.setColor(255,enemy.boundingbox.fist_color,enemy.boundingbox.fist_color, 255)
-			enemy.boundingbox.fist_box:draw('line')
+			--love.graphics.setColor(255,enemy.boundingbox.fist_color,enemy.boundingbox.fist_color, 255)
+			--enemy.boundingbox.fist_box:draw('line')
 			--enemy.boundingbox.entity_top_left:draw('line')
 			--enemy.boundingbox.entity_top_right:draw('line')
 			--enemy.boundingbox.entity_bottom_left:draw('line')
@@ -248,7 +246,7 @@ function love.draw()
     	end
 
 	end
-	--cam:detach()  -- Detach the camera
+	cam:detach()  -- Detach the camera
 
 end   --End Draw Function
 
@@ -273,6 +271,10 @@ function love.keypressed(key)
 	if key == "f5" then
 		local state = not world.dancetime
 		world.dancetime = state
+	end
+	if key == "f6" then
+		local state = not world.isAIEnabled
+		world.isAIEnabled = state
 	end
 
 
@@ -393,6 +395,7 @@ function load_graphics()
 	mediumenemydance = anim8.newAnimation(enemygrid('2-5',1,'2-2', 2,'3-4', 2), 0.14)
 	mediumenemyrunanimation = anim8.newAnimation(enemygrid(8,2,7,3,6,4,10,1,9,2,8,3,7,4,6,5,11,1,10,2,9,3,8,4,7,5,11,2,10,3,9,4,8,5), 0.04)
 	mediumenemywalkanimation = anim8.newAnimation(enemygrid(1,7,3,6,2,7,1,8,4,6,3,7,2,8,1,9,5,6,4,7,3,8,2,9), 0.1)
+	mediumenemypunch = anim8.newAnimation(enemygrid(3, 1), .4)
 	mediumenemystunned = anim8.newAnimation(enemygrid(11,3,	10,4,9,5,11,4,10,5,	11,5,1,6,2,6), 0.1)
 	mediumenemyjabbed_l1 = anim8.newAnimation(enemygrid(2,5, 5,3, 4,4, 4,4, 5,3, 2,5), 0.03, 'pause')	
 	mediumenemyjabbed_l2 = anim8.newAnimation(enemygrid(2,5, 5,3, 4,4, 3,5, 5,4, 5,4,5,4, 3,5, 4,4, 5,3, 2,5), 0.03, 'pause') -- 5,4's in the middle are neck snapped back
@@ -401,6 +404,7 @@ function load_graphics()
 	mediumenemydecked_l2 = anim8.newAnimation(enemygrid(1,1, 2,1, 1,2, 2,2, 3,1, 2,2, 1,2, 2,1, 1,1), .046, 'pause')
 	mediumenemydecked_l3 = anim8.newAnimation(enemygrid(4,1,3,2,5,1,4,2,5,2,1,3,2,3,1,4,6,2,8,1,7,2,6,3,9,1,11,4,10,5,11,5,1,6,2,6,1,6,11,5,10,5,11,4,9,5,10,4,11,3), 0.1, 'pause')
 	mediumenemyfrontkick_l1 = anim8.newAnimation(enemygrid(9,1, 8,1, 4,2, 5,1), 0.08, 'pause')
+	mediumenemydodge = anim8.newAnimation(enemygrid(1,3), .2)
 
 	--Main Player Graphics
 	mainPlayer_standstill = anim8.newAnimation(playergrid(1,1, 2,1, 1,2), 0.3)
@@ -422,13 +426,14 @@ function create_world()
 	world.debugtext.entity = {}
 	world.dancetime = false
 	world.inACinematic = false
+	world.isAIEnabled = true
 
 	--Debug flags
 	world.debug = {}
 	world.debug.player = false
 	world.debug.enemies = false
 	world.debug.collision_level = false
-	world.debug.collision_entity = false
+	world.debug.collision_entity = true
 
 	--Level Geometry and collision box creation
 	world.groundpos = 640

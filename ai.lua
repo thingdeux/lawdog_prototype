@@ -9,12 +9,32 @@ local function gaugeDanger(enemyindex, player) --If the player has been spotted 
 
 end
 
-local function facePlayer(enemyindex, player)
-	if enemyindex.player_tracker.isOnRight then
-		enemyindex.isFacingRight = true		
-	elseif not enemyindex.player_tracker.isOnRight then
-		enemyindex.isFacingRight = false		
+local function closeDistanceToPlayer(enemyindex, player)
+
+	enemyindex.state.wantsToRun = true
+	
+	if enemyindex.player_tracker.isOnTheRight and not enemyindex.player_tracker.nearby then
+		enemyindex.isMoving = true		
+		enemyindex.isFacingRight = true
+	elseif not enemyindex.player_tracker.isOnTheRight and not enemyindex.player_tracker.nearby then
+		enemyindex.isFacingRight =false
+		enemyindex.isMoving = true		
 	end
+
+end
+
+local function facePlayer(enemyindex)
+	
+	if enemyindex.player_tracker.playerSpotted then
+			return 0
+	else
+		if enemyindex.isFacingRight then
+			enemyindex.isFacingRight = false
+		else
+			enemyindex.isFacingRight = true
+		end
+	end
+	
 end
 
 local function within(y, y1, distance)
@@ -32,14 +52,16 @@ local function isNear(indexA, indexB , distance)
 	local distanceY = math.distY(indexA.y, indexB.y)
 
 
-	if within(indexA.y, indexB.y, 10) then
-		if within(indexA.x, indexB.x, 150) then
-			indexA.state.closeToAlly = true
-			indexB.state.closeToAlly = true
+	if within(indexA.y, indexB.y, 10) then --If they're on the same level(y)
+		if within(indexA.x, indexB.x, 150) then --If there's an ally 150 pixels near
+			indexA.state.closeToAlly.isClose = true
+			indexA.state.closeToAlly.reference = indexB
+			indexB.state.closeToAlly.isClose = true
+			indexB.state.closeToAlly.reference = indexA
 			return true
 		else
-			indexA.state.closeToAlly = false
-			indexB.state.closeToAlly = false
+			indexA.state.closeToAlly.isClose = false
+			indexB.state.closeToAlly.isClose = false
 			return false
 		end
 		
@@ -93,13 +115,13 @@ local function checkDistanceToPlayer(enemyindex, player)
 
 	local function checkIfNearbyPlayer(enemyindex)
 		if enemyindex.isFacingRight and enemyindex.player_tracker.isOnTheRight then
-			if enemyindex.player_tracker.distanceToPlayer_x < 50 and enemyindex.player_tracker.distanceToPlayer_x > 0 then
+			if enemyindex.player_tracker.distanceToPlayer_x <= 32 and enemyindex.player_tracker.distanceToPlayer_x > 16 then
 				enemyindex.player_tracker.nearby = true
 			else
 				enemyindex.player_tracker.nearby = false
 			end
 		elseif not enemyindex.isFacingRight and not enemyindex.player_tracker.isOnTheRight then
-			if enemyindex.player_tracker.distanceToPlayer_x > -200 and enemyindex.player_tracker.distanceToPlayer_x < -100 then
+			if enemyindex.player_tracker.distanceToPlayer_x > -81 and enemyindex.player_tracker.distanceToPlayer_x < -69 then
 				enemyindex.player_tracker.nearby = true
 			else
 				enemyindex.player_tracker.nearby = false
@@ -111,7 +133,7 @@ local function checkDistanceToPlayer(enemyindex, player)
 
 
 	local distancex = math.floor(math.distX(enemyindex.x + enemyindex.boundingbox.offset_moveto_entity_right_x + 10, 
-				 player.x) )
+				 player.x + player.boundingbox.offset_moveto_entity_right_x) )
 
 	local distancey = math.floor(math.distX(enemyindex.y + 50, player.y) )
 
@@ -139,45 +161,46 @@ end
 local function battleTime(enemyindex, player)
 
 	if enemyindex.isMoving and enemyindex.isFacingRight then
-		enemyindex.isMoving = false
-		enemyindex.velocity.x = enemyindex.velocity.x - 80
+		enemyindex.isMoving = false	
 		enemyindex.state.isFighting = true
+
 	elseif enemyindex.isMoving and not enemyindex.isFacingRight then
-		enemyindex.isMoving = false
-		enemyindex.velocity.x = enemyindex.velocity.x + 80
+		enemyindex.isMoving = false		
 		enemyindex.state.isFighting = true
 	else 
 		enemyindex.state.isFighting = true
-	end
+		facePlayer(enemyindex)	
+	end	
 
 	local function amIGoodEnoughToDodge(enemyindex, player)
 		enemyindex.dodged = false
-		local dodgeChance = math.random(100)
+		local dodgeChance = math.random(100)		
 		
 		for i, dodgetype in pairs(enemyindex.canDodge) do
-			if dodgetype == player.action then
-				if dodgeChance > 90 then						
+			if dodgetype == player.action then				
+				if dodgeChance > 80 then
 					enemyindex.dodged = true
 				end
 			end
 		end
 	end
 
-	local function shouldIKeepFighting(enemyindex, player)
-		if enemyindex.health > 10 then
+	local function shouldIKeepFighting()
+		if enemyindex.health > 5 then
 			return true
 		else
 			return false
 		end
 	end
 
-	local function shouldIAttack(enemyindex, player)
+	local function shouldIAttack(enemyindex)
 		local chanceToAttack = math.random(100)
 
-		if chanceToAttack > 70 then
-			
+		if chanceToAttack > 97 then  --I have to set this very high because this check runs like 8 times/sec					
+			return true
+		else		
+			return false			
 		end
-
 
 	end
 
@@ -185,32 +208,21 @@ local function battleTime(enemyindex, player)
 		if player.isAttacking then			
 			amIGoodEnoughToDodge(enemyindex, player)
 
-		elseif shouldIAttack then
-
-
-		elseif shouldIKeepFighting then
-		
+		elseif shouldIAttack(enemyindex) then
+			enemyindex.isPunching = true
+		elseif shouldIKeepFighting then			
 
 		end
+	elseif not enemyindex.player_tracker.nearby then
+		closeDistanceToPlayer(enemyindex,player)
 	end
+
+
 
 end
 
 
 
-local function closeDistanceToPlayer(enemyindex, player)
-
-	enemyindex.state.wantsToRun = true
-	
-	if enemyindex.player_tracker.isOnTheRight and not enemyindex.player_tracker.nearby then
-		enemyindex.isMoving = true		
-		enemyindex.isFacingRight = true
-	elseif not enemyindex.player_tracker.isOnTheRight then
-		enemyindex.isMoving = true
-		enemyindex.isFacingRight = false
-	end
-
-end
 
 function think(enemyindex, player, enemies)
 
@@ -228,7 +240,7 @@ function think(enemyindex, player, enemies)
 	end	
 
 
-	if enemyindex.player_tracker.playerSpotted then  --If the player has been spotted
+	if enemyindex.player_tracker.playerSpotted then  --If the player has been spotted and not in danger
 		checkDistanceToPlayer(enemyindex, player)
 		
 		if not enemyindex.state.isThreatened then  --Check to see if enemy has found danger
@@ -240,9 +252,7 @@ function think(enemyindex, player, enemies)
 		checkDistanceToPlayer(enemyindex, player)			--Check the distance to the player
 		if enemyindex.isJabbed or enemyindex.isKicked or
 		   enemyindex.isDecked or enemyindex.isFrontKicked then
-		   enemyindex.state.isThreatened = true
-		   --facePlayer(enemyindex, player)
-
+		   enemyindex.state.isThreatened = true		   
 		end
 
 	end
@@ -265,17 +275,14 @@ function coward(enemyindex, player, enemies)
 		end
 	end
 
-	if doIHaveBackup then
+	if doIHaveBackup then		
 		battleTime(enemyindex, player)
+		battleTime(enemyindex.state.closeToAlly.reference, player)
 		
 	elseif not doIHaveBackup then
 		runFromPlayer(enemyindex, player)
 		enemyindex.state.isFighting = false		
 	end
-
-
-	
-
 end
 
 function dumbPunk(enemyindex, player)
@@ -292,6 +299,11 @@ end
 
 function smartieMcFarty(enemyindex, player)
 end
+
+
+
+
+
 
 
 --[[

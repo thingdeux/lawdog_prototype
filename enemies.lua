@@ -13,6 +13,7 @@ function createEnemies(number)
 
 		enemy.type = 'medium'
 		enemy.personality = 'Coward'
+		enemy.animTimer = 0
 		enemy.animation = {}
 
 		if enemy.type == 'weak' then
@@ -32,12 +33,14 @@ function createEnemies(number)
 			enemy.animation.decked_l1 = mediumenemydecked_l1:clone()
 			enemy.animation.frontkick_l1 = mediumenemyfrontkick_l1:clone()
 			enemy.animation.dance = mediumenemydance:clone()
+			enemy.animation.punch = mediumenemypunch:clone()
+			enemy.animation.dodge = mediumenemydodge:clone()
 		elseif enemy.type == 'hard' then
 			enemy.health = 250
 			enemy.animation.walkanimation = hardenemywalkanimation:clone()
 			enemy.animation.standstillanimation = hardenemystandstill:clone()
 		end
-		enemy.jabspeed = .1
+		enemy.jabspeed = .4
 		enemy.kickspeed = .3
 		enemy.maxspeed = 150
 				
@@ -73,7 +76,10 @@ function createEnemies(number)
 		enemy.state.talking = false
 		enemy.state.isThreatened = false
 		enemy.state.isFighting = false
-		enemy.state.closeToAlly = false
+		enemy.state.closeToAlly = {}
+		enemy.state.closeToAlly.isClose = false
+		enemy.state.closeToAlly.reference = false
+
 		enemy.state.isFacingPlayer = false
 		enemy.player_tracker = {}
 		enemy.player_tracker.playerSpotted = false
@@ -94,7 +100,7 @@ function createEnemies(number)
 		enemy.animation_state = 'idle'
 		
 		enemy.animTimer = 0
-		enemy.turnoffset = 13
+		enemy.turnoffset = 10
 		enemy.boundingbox = {}
 		enemy.boundingbox.offset_moveto_entity_left_x = 35
 		enemy.boundingbox.offset_moveto_entity_top_y = 25
@@ -137,7 +143,7 @@ function createEnemies(number)
 		entityCollider:addToGroup(enemy.reference, enemy.boundingbox.entity_top_left, 
 			enemy.boundingbox.entity_top_right, enemy.boundingbox.entity_bottom_right, 
 			enemy.boundingbox.entity_bottom_left,enemy.boundingbox.entity_main)
-		
+		entityCollider:setGhost(enemy.boundingbox.fist_box)
 		enemy.isInGroup = false
 		table.insert(enemies, enemy)
 	end
@@ -169,10 +175,12 @@ function snapEnemyBoundingBoxes(index)
 	elseif not index.isFacingRight then
 		index.boundingbox.level:moveTo(index.x + index.boundingbox.offset_moveto_level_x + 12, index.y + index.boundingbox.offset_moveto_level_y)
 		index.boundingbox.entity_main:moveTo(index.x + index.boundingbox.offset_moveto_level_x + 12, index.y + index.boundingbox.offset_moveto_level_y)
-		index.boundingbox.entity_top_left:moveTo(index.x + index.boundingbox.offset_moveto_entity_left_x+15, index.y + index.boundingbox.offset_moveto_entity_top_y)
-		index.boundingbox.entity_top_right:moveTo(index.x + index.boundingbox.offset_moveto_entity_right_x+15, index.y + index.boundingbox.offset_moveto_entity_top_y)
-		index.boundingbox.entity_bottom_right:moveTo(index.x + index.boundingbox.offset_moveto_entity_right_x+15, index.y + index.boundingbox.offset_moveto_entity_bottom_y)
-		index.boundingbox.entity_bottom_left:moveTo(index.x + index.boundingbox.offset_moveto_entity_left_x+15, index.y + index.boundingbox.offset_moveto_entity_bottom_y)
+
+		index.boundingbox.entity_top_left:moveTo(index.x + index.boundingbox.offset_moveto_entity_left_x + 5, index.y + index.boundingbox.offset_moveto_entity_top_y)
+		index.boundingbox.entity_top_right:moveTo(index.x + index.boundingbox.offset_moveto_entity_right_x+ 5, index.y + index.boundingbox.offset_moveto_entity_top_y)
+		index.boundingbox.entity_bottom_right:moveTo(index.x + index.boundingbox.offset_moveto_entity_right_x+ 5, index.y + index.boundingbox.offset_moveto_entity_bottom_y)
+		index.boundingbox.entity_bottom_left:moveTo(index.x + index.boundingbox.offset_moveto_entity_left_x+ 5, index.y + index.boundingbox.offset_moveto_entity_bottom_y)
+
 		index.boundingbox.fist_box:moveTo(index.x + 20, index.y + index.boundingbox.offset_moveto_fist_y*2)
 
 	end
@@ -205,10 +213,49 @@ function doEnemyProcessing(dt, enemies)
 		end
 	end
 
+	local function setAnimationTimer(enemyindex,speed)
+		enemyindex.animTimer = love.timer.getTime() + speed
+	end
+
+	local function doAttack(index, speed,boundingbox, stop)
+
+		local function isTheShapeAGhost(colliderInstance, shape)
+			for i, value in pairs(colliderInstance._active_shapes) do -- Iterate over active shapes
+				if value == shape then --Do you find the shape?
+					return true
+				end
+			end
+
+			return false
+		end
+
+		if not stop then
+			index.animTimer = love.timer.getTime() + speed
+			index.isAttacking = true					
+			if not isTheShapeAGhost(entityCollider, boundingbox) then
+				entityCollider:setSolid(boundingbox)
+			end
+		end
+
+		if stop then			
+			index.isPunching = false
+			index.isAttacking = false
+			player.isHit = false
+						
+
+			if isTheShapeAGhost(entityCollider, boundingbox) then
+				entityCollider:setGhost(boundingbox)
+			end	
+		end
+
+	end
 	
 	for i, enemyindex in ipairs(enemies) do
-		--Process Enemy Thought
-		think(enemyindex, player, enemies)
+		--Process Enemy Thought every other second.		
+		if world.isAIEnabled then
+			think(enemyindex, player, enemies)
+		end
+		
 
 		if enemyindex.isFacingRight and enemyindex.isMoving then  -- Enemy walking right
 			if enemyindex.velocity.x < enemyindex.maxspeed then
@@ -252,18 +299,36 @@ function doEnemyProcessing(dt, enemies)
 
 
 		--Fighting Stance
-		if enemyindex.state.isFighting then
+		if enemyindex.state.isFighting and not enemyindex.isAttacking and not enemyindex.dodged then
 			doEnemyAnimation("fighting", enemyindex)
 			enemyindex.animation.fightingstance:update(dt)
 		end
 
-		if not enemyindex.isMoving and not enemyindex.state.isFighting then
+		if not enemyindex.isMoving and not enemyindex.state.isFighting and not enemyindex.dodged then
 			doEnemyAnimation("idle", enemyindex, dt)
 			enemyindex.animation.standstillanimation:update(dt)
 		end
 
+		--Initiate Attacking animations
+		if enemyindex.isPunching and not enemyindex.isAttacking then
+			enemyindex.animation.punch:gotoFrame(1)
+			doEnemyAnimation("punch", enemyindex, dt)
+			doAttack(enemyindex, enemyindex.jabspeed, enemyindex.boundingbox.fist_box)
+		elseif enemyindex.isPunching and enemyindex.isAttacking and love.timer.getTime() > enemyindex.animTimer then
+			doAttack(enemyindex, enemyindex.jabspeed, enemyindex.boundingbox.fist_box, true)
+		end
 
-		--Punch Animations
+		--Initiate Getting hit Animations		
+		if enemyindex.dodged and not enemyindex.action then	
+			enemyindex.action = true	
+			enemyindex.animation.dodge:gotoFrame(1)
+			doEnemyAnimation("dodge", enemyindex)
+			setAnimationTimer(enemyindex, .2)									
+		elseif enemyindex.dodged and love.timer.getTime() > enemyindex.animTimer then
+			enemyindex.dodged = false	
+			enemyindex.action = false
+		end
+
 		if enemyindex.isJabbed then
 			doEnemyAnimation("punched", enemyindex)
 			enemyindex.animation.jabbed_l1:update(dt)
@@ -369,6 +434,14 @@ function doEnemyAnimation(action, indexie)
 
 		if action == 'dance' then
 			indexie.animation_state = 'dance'
+		end
+
+		if action == 'punch' then
+			indexie.animation_state = 'punch'
+		end
+
+		if action == 'dodge' then
+			indexie.animation_state = 'dodge'
 		end
 
 		

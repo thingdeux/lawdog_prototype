@@ -12,7 +12,7 @@ F5 is a surprise
 --Ground Collision Functions (Level collision)
 function ground_collision (dt, shape_a, shape_b, mtv_x, mtv_y)
 	local enemies = passEnemies()	
-	world.debugtext.level[#world.debugtext.level+1] = string.format("Colliding. mtv = (%s, %s)", mtv_x, mtv_y)		
+	--world.debugtext.level[#world.debugtext.level+1] = string.format("Colliding. mtv = (%s, %s)", mtv_x, mtv_y)		
 
 	local function levelChecks(shape, shapetype, indexie)
 		if shape_a == world.leftwall or world.rightwall or shape_b == world.leftwall or world.rightwall then
@@ -62,9 +62,7 @@ function ground_collision (dt, shape_a, shape_b, mtv_x, mtv_y)
 			levelChecks(shape_b, 'e', value)
 		end	
 		
-	end
-
-	
+	end	
 end
 
 function ground_collision_stop(dt, shape_a, shape_b)
@@ -78,8 +76,10 @@ function ground_collision_stop(dt, shape_a, shape_b)
 end
 --End Ground Collision Functions
 
---Entity (or person to person/object collision)
 
+
+
+--Entity (or person to person/object collision)
 --This is called whenever two boxes that aren't in the same group collide.
 function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y) 
 	--Unfortunately the boxes don't identify themselves automatically so I create these 'flags' for use later in identifying them.
@@ -102,20 +102,25 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 
 	local function resolveCollision()
 		
-		if isPlayer then  --If a player is colliding with something
-			
+		if isPlayer then  --If a player is colliding with something			
 			--If the players main body bounding box is collindg with something
 			if checkCollisionContainers({player.boundingbox.entity_main}, isPlayer) then					
-					if isEnemy then    --If that something is an enemy
+					if isEnemy then    --If that something is an enemy						
+						world.debugtext.entity[#world.debugtext.entity+1] = string.format("PCol. mtv = (%s, %s)", mtv_x, mtv_y)		
 						if checkCollisionContainers({enemyIndex.boundingbox.entity_main}, isEnemy) then --If it collides with the enemies body bounding box
-							enemyIndex.velocity.x = 0	--Set the enemies velocity to 0 so he is no longer moving	
 							
-							-- Push the enemy back a bit mtv_x is how much the shapes collide
-							--For instance if I'm coming at something 10 miles an hour and that thing is a brick wall, and I smack into it
-							--I'm exerting 10 miles per hour of force into that wall, and the amount of force it takes to move me back would be 10 miles + something
-							enemyIndex.velocity.x = enemyIndex.velocity.x + -mtv_x
+							
+							-- Push the enemy back a bit mtv_x is how much the shapes collide							
+							enemyIndex.velocity.x = 0	--Set the enemies velocity to 0 so he is no longer moving	
 
+							if enemyIndex.x < player.x then																				
+								enemyIndex.velocity.x = enemyIndex.velocity.x - 4200*dt
+							else								
+								enemyIndex.velocity.x = enemyIndex.velocity.x + 4200*dt
+							end
+							
 							snapEnemyBoundingBoxes(enemyIndex) --This is what keeps the bounding boxes attached to the enemies, the boxes move with them because of this
+
 							player.velocity.x = 0 --Set the enemies velocity to 0 as well so he isn't moving either
 
 							--This is a "patch" I applied because sometimes the speeds of the two colliding objects is so high they warp through each other
@@ -127,15 +132,19 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 							end
 
 							--Not sure why I'm setting the player velocity twice....may need to research this*
-							player.velocity.x = player.velocity.x + mtv_x
+							--player.velocity.x = player.velocity.x + mtv_x
 							snapPlayerBoundingBoxes()	--This is what keeps the bounding boxes attached to the player, the boxes move with them because of this
+						end
+
+						if checkCollisionContainers({enemyIndex.boundingbox.fist_box}, isEnemy) and not player.isHit then
+							player.health = player.health - 5
+							player.isHit = true
 						end
 					end
 			end
 		elseif isEnemy then  -- If an enemy has come in contact with something
 			if checkCollisionContainers({enemyIndex.boundingbox.entity_main}, isEnemy) then  --If that something is another enemies bounding box
 				if isEnemy2 then  --If the thing it has come in contact with is another enemy
-
 						
 					if enemyIndex.animation_state == 'frontkicked' then  --If that enemy is flying backwards from a front kick
 

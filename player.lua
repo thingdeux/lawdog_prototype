@@ -220,6 +220,7 @@ function create_player()
 	player = {}
 	player.x = 300
 	player.y = 400
+	player.health = 100
 	player.jabspeed = .18
 	player.crossspeed = .18
 	player.hookspeed = .6
@@ -255,6 +256,7 @@ function create_player()
 	player.isAlive = true
 	player.isPunching = false
 	player.isKicking = false
+	player.isHit = false
 	player.animTimer = 0
 	player.isAttacking = false
 	player.boundingbox = {}
@@ -298,7 +300,7 @@ function create_player()
 			player.boundingbox.entity_top_right, player.boundingbox.entity_bottom_right, 
 			player.boundingbox.entity_bottom_left,player.boundingbox.entity_main,
 			player.boundingbox.foot_box, player.boundingbox.fist_box)
-		entityCollider:setGhost(player.boundingbox.fist_box)
+	entityCollider:setGhost(player.boundingbox.fist_box)
 	entityCollider:setGhost(player.boundingbox.foot_box)
 
 end
