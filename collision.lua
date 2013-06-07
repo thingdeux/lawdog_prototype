@@ -51,16 +51,38 @@ function ground_collision (dt, shape_a, shape_b, mtv_x, mtv_y)
 		if checkCollisionContainers(world.stairContainer, isLevel) then
 			
 			if isPlayer then
-				world.debugtext.level[#world.debugtext.level+1] = string.format("Colliding w/ Stairs: mtv = (%s, %s)", mtv_x, mtv_y)
-				player.isOnStairs = true
-				if love.keyboard.isDown("d") or player.velocity.x > 0 then
+				--world.debugtext.level[#world.debugtext.level+1] = string.format("Colliding w/ Stairs: mtv = (%s, %s)", mtv_x, mtv_y)
+				--player.isOnStairs = true
+				if player.velocity.x > 0 and player.isOnStairs then
 					player.y = player.y + mtv_y
 					player.x = player.x + mtv_x					
-				elseif love.keyboard.isDown("a") or player.velocity.x < 0 then
+				elseif player.velocity.x < 0 and player.isOnStairs then
 					player.y = player.y + mtv_y
 					player.x = player.x + mtv_x					
 				end
 				snapPlayerBoundingBoxes()
+			end
+		end
+		if checkCollisionContainers(world.wallContainer, isLevel) then
+			if isPlayer then
+				player.x = player.x + mtv_x - 2
+				snapPlayerBoundingBoxes()
+				player.velocity.x = 0
+			elseif isEnemy then
+				enemyIndex.x = enemyIndex.x + mtv_x - 2
+				snapEnemyBoundingBoxes(enemyIndex)
+				enemyIndex.velocity.x = 0
+			end
+		end
+
+		if checkCollisionContainers(world.stairEntryContainer, isLevel) then
+			player.canEnterStairs = true
+		end
+
+		if checkCollisionContainers(world.stairTerminationContainer, isLevel) then 
+			if player.isOnStairs and not player.canEnterStairs then
+				player.isOnStairs = false
+				player.isOnGround = false				
 			end
 		end
 
@@ -106,13 +128,16 @@ function ground_collision (dt, shape_a, shape_b, mtv_x, mtv_y)
 end
 
 function ground_collision_stop(dt, shape_a, shape_b)
-	local enemies = passEnemies()
-	world.debugtext.level[#world.debugtext.level+1] = "Stopped Colliding"
-	snapPlayerBoundingBoxes()
+	--local enemies = passEnemies()
+	--world.debugtext.level[#world.debugtext.level+1] = "Stopped Colliding"
+	local shapes = {shape_a, shape_b}
 
-	for i, enemyIndex in ipairs(enemies) do
-		snapEnemyBoundingBoxes(enemyIndex)
+	for _, box in ipairs(shapes) do
+		if checkCollisionContainers(world.stairEntryContainer, box) then
+			player.canEnterStairs = false
+		end
 	end
+
 end
 --End Ground Collision Functions
 
@@ -130,14 +155,12 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 		if isPlayer then  --If a player is colliding with something			
 			--If the players main body bounding box is collindg with something
 			if checkCollisionContainers({player.boundingbox.entity_main}, isPlayer) then					
-					if isEnemy then    --If that something is an enemy						
-						world.debugtext.entity[#world.debugtext.entity+1] = string.format("PCol. mtv = (%s, %s)", mtv_x, mtv_y)		
+					if isEnemy then    --If that something is an enemy												
 						if checkCollisionContainers({enemyIndex.boundingbox.entity_main}, isEnemy) then --If it collides with the enemies body bounding box
-							
-							
-							-- Push the enemy back a bit mtv_x is how much the shapes collide							
+																					
 							enemyIndex.velocity.x = 0	--Set the enemies velocity to 0 so he is no longer moving	
 
+							-- Push add some negative velocity to push the enemy back a bit
 							if enemyIndex.x < player.x then																				
 								enemyIndex.velocity.x = enemyIndex.velocity.x - 4200*dt
 							else								
@@ -150,14 +173,12 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 
 							--This is a "patch" I applied because sometimes the speeds of the two colliding objects is so high they warp through each other
 							--Comment it out to see what things are like without it. This may be what needs fixing.
-							if mtv_x > 4 then
+							--[[if mtv_x > 4 then
 								player.x = player.x + mtv_x*dt
 							elseif mtv_x < -4 then
 								player.x = player.x - mtv_x*dt
-							end
-
-							--Not sure why I'm setting the player velocity twice....may need to research this*
-							--player.velocity.x = player.velocity.x + mtv_x
+							end  --]]
+							
 							snapPlayerBoundingBoxes()	--This is what keeps the bounding boxes attached to the player, the boxes move with them because of this
 						end
 
@@ -271,12 +292,12 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 
 						if not enemyIndex.dodged then
 							if checkCollisionContainers({enemyIndex.boundingbox.entity_bottom_right}, isEnemy) then  --If you front kick them on the right they'll go left...
-								enemyIndex.velocity.x = enemyIndex.velocity.x - 480	
-								enemyIndex.velocity.y = enemyIndex.velocity.y - 5
+								enemyIndex.velocity.x = enemyIndex.velocity.x - 300
+								enemyIndex.velocity.y = enemyIndex.velocity.y - 6
 								enemyIndex.isOnGround = false
 							else  --If you front kick them on the left they'll go right...
-								enemyIndex.velocity.x = enemyIndex.velocity.x + 480	
-								enemyIndex.velocity.y = enemyIndex.velocity.y - 5
+								enemyIndex.velocity.x = enemyIndex.velocity.x + 300	
+								enemyIndex.velocity.y = enemyIndex.velocity.y - 6
 								enemyIndex.isOnGround = false
 							end
 						end

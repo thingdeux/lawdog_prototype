@@ -58,12 +58,20 @@ function love.update(dt)
 	end
 
 	if love.keyboard.isDown("s") then
-		player.y = player.y + 10
+
+		if player.canEnterStairs and not player.isOnStairs then
+			player.isOnStairs = true
+			player.y = player.y + 30
+		end
 		snapPlayerBoundingBoxes()
 	end
 	if love.keyboard.isDown("w") then
-		player.y = player.y - 10
-		snapPlayerBoundingBoxes()
+		if player.canEnterStairs then
+			player.isOnStairs = true
+		end		
+	end
+	if love.keyboard.isDown("lshift") then
+		player.isRunning = true
 	end
 
 	
@@ -126,7 +134,7 @@ function love.draw()
 		love.graphics.print("Status: " .. tostring(player.animations.jab.status), 340,50)
 		love.graphics.print("isAttacking: " .. tostring(player.isAttacking), 340,60)
 		love.graphics.print("Player X: " .. tostring(player.x) .. "Player Y: " .. tostring(player.y), 340,70)		
-		love.graphics.print("Animtimer: " .. tostring(player.animTimer), 340,90, math.rad(30))
+		love.graphics.print("isStairs: " .. tostring(player.isOnStairs), 340,90, math.rad(30))
 	end
 
 	--Draw Player animations
@@ -231,9 +239,11 @@ function love.draw()
 	if world.debug.collision_level then
 		for i, box in ipairs(world.levelContainer) do
 			love.graphics.setColor(255,255,255, 255)
-			if box == world.stairs then
-				love.graphics.setColor(255,100,255, 255)				
-			end			
+			if checkCollisionContainers(world.stairContainer, box) then
+				love.graphics.setColor(100,255,255, 255)
+			elseif checkCollisionContainers(world.stairEntryContainer, box) then
+				love.graphics.setColor(255,255,51,255)
+			end
 			box:draw('line')
 		end
 		
@@ -368,6 +378,10 @@ function love.keyreleased(key)
 	if key == "s" then
 		player.animation = 'idle'
 	end
+
+	if key == "lshift" then
+		player.isRunning = false
+	end
 end
 
 function love.mousepressed(x, y, button)
@@ -438,7 +452,7 @@ function create_world()
 	world.debug = {}
 	world.debug.player = false
 	world.debug.enemies = false
-	world.debug.collision_level = true
+	world.debug.collision_level = false
 	world.debug.collision_entity = false
 
 	--Level Geometry and collision box creation	
@@ -447,20 +461,41 @@ function create_world()
 	world.roof = Collider:addRectangle(0, 0, screenwidth, 20)
 	world.ground = Collider:addRectangle(60,600, screenwidth - 64, 20)
 	world.secondFloor = Collider:addRectangle(60, 305, 1020, 30)
-	world.stairsTop = Collider:addPolygon( 620, 482,   --Bottom Left
+	world.stairsTop = Collider:addPolygon( 620, 492,   --Bottom Left
 									   	   940,240, 	--Top Right
 									   	   740, 290)   --Top Left
 									   	    --700, 300)		   --Top Left
 
-	world.stairsBottom = Collider:addPolygon( 650, 602,   --Bottom Left
+	world.stairsBottom = Collider:addPolygon( 640, 602,   --Bottom Left
 									   		  1020,300, 	--Top Right
 									   		  734, 580 )  --Bottom Right
+	world.stairsBottomEntry = Collider:addPolygon(630, 493,
+												630, 600,
+												635, 600,
+												640, 478)
+	world.stairsTopEntry = Collider:addPolygon(940, 240,
+												900, 290,
+												945, 281,
+												945, 280)
+	world.stairsTerminateBottom = Collider:addPoint(600, 580)
+	world.stairsTerminateTop = Collider:addPoint(1000, 220)
 	
-
+	--*****Make sure to put any newly created bounding boxes in this container
 	world.levelContainer = {world.leftwall, world.rightwall, world.roof, world.ground, 
-					world.secondFloor, world.stairsBottom, world.stairsTop}
+							world.secondFloor, world.stairsBottom, world.stairsTop, 
+							world.stairsBottomEntry,world.stairsTopEntry,
+							world.stairsTerminateBottom, world.stairsTerminateTop}
+	
+	--****Make sure to put all ground collision boxes in this container
 	world.groundContainer = {world.ground, world.secondFloor}
+	--****Make sure to put all wall collision boxes in this container
+	world.wallContainer = {world.leftwall, world.rightwall}
+	--****Make sure to put all stair collision boxes in this container
 	world.stairContainer = {world.stairsBottom, world.stairsTop}
+	--****Make sure to put all stair entry collision boxes in this container
+	world.stairEntryContainer = {world.stairsBottomEntry, world.stairsTopEntry}
+	--****Make sure to put all stair termination points in this container
+	world.stairTerminationContainer = {world.stairsTerminateBottom, world.stairsTerminateTop}
 	for i, box in ipairs(world.levelContainer) do
 		Collider:addToGroup("level", box)
 		Collider:setPassive(box)
@@ -474,5 +509,5 @@ function create_world()
 							{509, 536},
 							{403, 510},
 							--{993, 227},
-							{191, 540} }	
+							{191, 540} }
 end

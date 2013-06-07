@@ -2,14 +2,28 @@
 function doPlayerAnimation(key,dt)
 	local function moveplayer(direction,dt)
 		if direction == 'right' then
-			if player.velocity.x < player.maxspeed then
-				player.velocity.x = player.velocity.x + player.speed*dt
-				player.animation = 'walk'
+			if not player.isRunning then
+				if player.velocity.x < player.maxspeed then
+					player.velocity.x = player.velocity.x + player.speed*dt
+					player.animation = 'walk'
+				end
+			else
+				if player.velocity.x < player.maxspeed*2 then
+					player.velocity.x = player.velocity.x + player.speed*dt
+					player.animation = 'walk'
+				end
 			end
 		elseif direction == 'left' then
-			if  player.velocity.x > -player.maxspeed then
-				player.velocity.x = player.velocity.x - player.speed*dt
-				player.animation = 'walk'
+			if not player.isRunning then
+				if  player.velocity.x > -player.maxspeed then
+					player.velocity.x = player.velocity.x - player.speed*dt
+					player.animation = 'walk'				
+				end
+			else
+				if player.velocity.x > -player.maxspeed*2 then
+					player.velocity.x = player.velocity.x - player.speed*dt
+					player.animation = 'walk'
+				end
 			end
 		end
 
@@ -248,14 +262,16 @@ function create_player()
 	player.speed = 600
 	
 
-	player.maxspeed = 180
+	player.maxspeed = 180	
 	player.stoppingSpeed = 12
 	player.velocity = {}
 	player.velocity.x = 0
 	player.velocity.y = 0
 	player.energy = 100
 	player.animation = 'idle'
+	player.isRunning = false
 	player.isFacingRight = true
+	player.canEnterStairs = false
 	player.isAlive = true
 	player.isPunching = false
 	player.isKicking = false
