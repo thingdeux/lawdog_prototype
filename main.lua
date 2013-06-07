@@ -96,7 +96,7 @@ end
 
 
 function love.draw()
-	cam:attach()  --Attach the camera
+	--cam:attach()  --Attach the camera
 
 	--Draw Background and UI Elements
 	love.graphics.draw(background, 0, 0)
@@ -229,10 +229,15 @@ function love.draw()
 
 	--Draw World Bounding Boxes if debug flag is set
 	if world.debug.collision_level then
-		world.leftwall:draw('line')
-		world.rightwall:draw('line')
-		world.roof:draw('line')
-		world.ground:draw('line')
+		for i, box in ipairs(world.levelContainer) do
+			love.graphics.setColor(255,255,255, 255)
+			if box == world.stairs then
+				love.graphics.setColor(255,100,255, 255)				
+			end			
+			box:draw('line')
+		end
+		
+		love.graphics.setColor(255,255,255, 255)
 		player.boundingbox.level:draw('line')
 
 		for i, enemy in ipairs(enemies) do
@@ -246,7 +251,7 @@ function love.draw()
     	end
 
 	end
-	cam:detach()  -- Detach the camera
+	--cam:detach()  -- Detach the camera
 
 end   --End Draw Function
 
@@ -373,6 +378,7 @@ function love.mousepressed(x, y, button)
 
 	if button == "r" then
 		player.isOnGround = false
+		player.isOnStairs = false
 	end
 end
 
@@ -432,27 +438,41 @@ function create_world()
 	world.debug = {}
 	world.debug.player = false
 	world.debug.enemies = false
-	world.debug.collision_level = false
-	world.debug.collision_entity = true
+	world.debug.collision_level = true
+	world.debug.collision_entity = false
 
-	--Level Geometry and collision box creation
-	world.groundpos = 640
+	--Level Geometry and collision box creation	
 	world.leftwall = Collider:addRectangle(0, 20, 60, screenheight -20)
-	world.rightwall = Collider:addRectangle(900, 323, 40, screenheight -20)
+	world.rightwall = Collider:addRectangle(900, 423, 40, screenheight -20)
 	world.roof = Collider:addRectangle(0, 0, screenwidth, 20)
-	world.ground = Collider:addRectangle(60,world.groundpos, screenwidth - 64, 20)
-	Collider:addToGroup("level", world.leftwall, world.rightwall, world.roof, world.ground)
-	Collider:setPassive(world.leftwall, world.rightwall, world.roof, world.ground)
+	world.ground = Collider:addRectangle(60,600, screenwidth - 64, 20)
+	world.secondFloor = Collider:addRectangle(60, 305, 1020, 30)
+	world.stairsTop = Collider:addPolygon( 620, 482,   --Bottom Left
+									   	   940,240, 	--Top Right
+									   	   740, 290)   --Top Left
+									   	    --700, 300)		   --Top Left
+
+	world.stairsBottom = Collider:addPolygon( 650, 602,   --Bottom Left
+									   		  1020,300, 	--Top Right
+									   		  734, 580 )  --Bottom Right
+	
+
+	world.levelContainer = {world.leftwall, world.rightwall, world.roof, world.ground, 
+					world.secondFloor, world.stairsBottom, world.stairsTop}
+	world.groundContainer = {world.ground, world.secondFloor}
+	world.stairContainer = {world.stairsBottom, world.stairsTop}
+	for i, box in ipairs(world.levelContainer) do
+		Collider:addToGroup("level", box)
+		Collider:setPassive(box)
+	end
 
 	world.level = 1
 	world.gravity = 50
 	world.terminalVelocity = 150
 	world.windResistance = 20
-	world.spawnLocations = {{215, 214},
-							{509, 236},
+	world.spawnLocations = {{215, 514},
+							{509, 536},
 							{403, 510},
 							--{993, 227},
-							{191, 497} }
-
-	--Collider:setGhost(world.rightwall)
+							{191, 540} }	
 end

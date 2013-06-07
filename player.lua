@@ -180,10 +180,13 @@ function doPlayerProcessing(dt)
 		end
 	end
 
-	if player.isOnGround == false then		
+	if not player.isOnGround then		
 		player.y = player.y + player.velocity.y
 		doPlayerAnimation('fall',dt)
 		snapPlayerBoundingBoxes()
+	end
+	if player.isOnStairs then
+		player.y = player.y + player.velocity.y		
 	end
 	
 end
@@ -219,7 +222,7 @@ end
 function create_player()
 	player = {}
 	player.x = 300
-	player.y = 400
+	player.y = 510
 	player.health = 100
 	player.jabspeed = .18
 	player.crossspeed = .18
@@ -257,6 +260,7 @@ function create_player()
 	player.isPunching = false
 	player.isKicking = false
 	player.isHit = false
+	player.isOnStairs = false
 	player.animTimer = 0
 	player.isAttacking = false
 	player.boundingbox = {}

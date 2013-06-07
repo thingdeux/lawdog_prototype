@@ -7,62 +7,102 @@ F4 Turns on collision entity debug information
 F5 is a surprise
 --]]
 
+	--I keep references to each shape in a 'container' - for instance there are 5 boxes that makeup a container for a character
+    --The MAIN box is the box that's used to determine collision between two people.  It's a box that's drawn over the whole character, and if it comes
+    --in contact with another entity (ex: enemy) it will trigger collision events.  The name of the players main box is player.boundingbox.main
+function checkCollisionContainers(var_names, shape)
+	--This looks through the container that's passed for the given name of the 'shape' *example further down
+	--When it finds the location of the requested container it passes it
+	for i,name in pairs(var_names) do
+		if shape == name then
+			return true
+		end
+	end
+	return false
+end
+
+
+
 
 
 --Ground Collision Functions (Level collision)
 function ground_collision (dt, shape_a, shape_b, mtv_x, mtv_y)
-	local enemies = passEnemies()	
+
+	local isPlayer, isEnemy, isLevel = nil
+	local enemyIndex, levelIndex = nil
 	--world.debugtext.level[#world.debugtext.level+1] = string.format("Colliding. mtv = (%s, %s)", mtv_x, mtv_y)		
 
-	local function levelChecks(shape, shapetype, indexie)
-		if shape_a == world.leftwall or world.rightwall or shape_b == world.leftwall or world.rightwall then
-			if shapetype == 'p' then
-				shape:move(mtv_x, 0)
-				player.x = player.x + mtv_x
-				player.velocity.x = 0
-			end
-			if shapetype == 'e' then
-				shape:move(mtv_x, 0)
-				indexie.x = indexie.x + mtv_x
-				indexie.velocity.x = 0
-			end
-		end
-	
-		if shape_a == world.ground or shape_b == world.ground then
-			if shapetype == 'p' then
-				shape:move(0, mtv_y - 2)
+	local function levelChecks()
+
+		if checkCollisionContainers(world.groundContainer, isLevel) then
+			if isPlayer and not player.isOnStairs then
 				player.y = player.y + mtv_y - 2
-				player.isOnGround = true
-				player.velocity.y = 0
-			end
-			if shapetype == 'e' then
-				shape:move(0, mtv_y - 2)
-				indexie.y = indexie.y + mtv_y - 2
-				indexie.isOnGround = true
-				indexie.velocity.y = 0
+				snapPlayerBoundingBoxes()
+				player.velocity.y = 0				
+				player.isOnGround = true				
+			elseif isEnemy then
+				enemyIndex.y = enemyIndex.y + mtv_y - 2
+				snapEnemyBoundingBoxes(enemyIndex)
+				enemyIndex.velocity.y = 0				
+				enemyIndex.isOnGround = true
 			end
 		end
+
+		if checkCollisionContainers(world.stairContainer, isLevel) then
+			
+			if isPlayer then
+				world.debugtext.level[#world.debugtext.level+1] = string.format("Colliding w/ Stairs: mtv = (%s, %s)", mtv_x, mtv_y)
+				player.isOnStairs = true
+				if love.keyboard.isDown("d") or player.velocity.x > 0 then
+					player.y = player.y + mtv_y
+					player.x = player.x + mtv_x					
+				elseif love.keyboard.isDown("a") or player.velocity.x < 0 then
+					player.y = player.y + mtv_y
+					player.x = player.x + mtv_x					
+				end
+				snapPlayerBoundingBoxes()
+			end
+		end
+
 	end
 
-	local playa = nil
+		--Determines the objects that are colliding
+	local function determineCollisionObjects(shapes)
+		local enemies = passEnemies()	--Ignore this		
 
-	if shape_a == player.boundingbox.level then
-		playa = shape_a
-		levelChecks(playa, 'p', nil)
-	elseif shape_b == player.boundingbox.level then
-		playa = shape_b
-		levelChecks(playa, 'p', nil)
+		for i, value in pairs(shapes) do
+			
+			for i, levelbox in ipairs(world.levelContainer) do				
+				if checkCollisionContainers({levelbox}, value) then				
+					isLevel = value		
+					levelIndex = levelbox
+				end
+			end
+
+			--If a player is somewhere in this collision then set the 'isPlayer' flag to 'true'
+			if checkCollisionContainers({player.boundingbox.level}, value) then
+				isPlayer = value  --This is the shape			
+			end
+
+			--If an enemy is somewhere in this collision then set the 'isEnemy' flag to 'true'
+			--Also track the memory location of the currently interacting enemy in enemyIndex (will come into play during resolve)
+			for i, enem in ipairs(enemies) do
+				if checkCollisionContainers({enem.boundingbox.level}, value) and not isEnemy then
+					isEnemy = value
+					enemyIndex = enem  --This is the table index for the enemy							
+				end
+			end
+
+
+
+		end
+
 	end
 
-	--Check enemy collisions
-	for i, value in ipairs(enemies) do		
-		if shape_a == value.boundingbox.level then
-			levelChecks(shape_a, 'e', value)
-		elseif shape_b == value.boundingbox.level then
-			levelChecks(shape_b, 'e', value)
-		end	
-		
-	end	
+
+	determineCollisionObjects(  {shape_a, shape_b} )
+	levelChecks()
+
 end
 
 function ground_collision_stop(dt, shape_a, shape_b)
@@ -84,21 +124,6 @@ end
 function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y) 
 	--Unfortunately the boxes don't identify themselves automatically so I create these 'flags' for use later in identifying them.
 	local isPlayer, isEnemy, enemyIndex, isEnemy2, enemyIndex2 = nil
-
-	--I keep references to each shape in a 'container' - for instance there are 5 boxes that makeup a container for a character
-    --The MAIN box is the box that's used to determine collision between two people.  It's a box that's drawn over the whole character, and if it comes
-    --in contact with another entity (ex: enemy) it will trigger collision events.  The name of the players main box is player.boundingbox.main
-	local function checkCollisionContainers(var_names, shape)
-		--This looks through the container that's passed for the given name of the 'shape' *example further down
-		--When it finds the location of the requested container it passes it
-		for i,value in pairs(var_names) do
-			if shape == value then
-				return true
-			end
-		end
-		return false
-	end
-
 
 	local function resolveCollision()
 		
@@ -260,13 +285,9 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 			end
 		end
 
-
-
-
 	end
 
-	--Because (as mentioned earlier) the collision function doesn't know which shapes are interacting, this function determines
-	--whether you're dealing with the player character and an enemy or an enemy and another enemy
+	--Determines the objects that are colliding
 	local function determineCollisionObjects(shapes)
 		local enemies = passEnemies()	--Ignore this	
 
@@ -290,10 +311,10 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 					isEnemy2 = value
 					enemyIndex2 = enem
 				end
-
 			end
 
 		end
+
 	end
 		
 
