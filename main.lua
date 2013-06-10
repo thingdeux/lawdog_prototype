@@ -34,6 +34,7 @@ function love.load()
 end  -- End Load Function
 
 function love.update(dt)
+	
 	checkEnemyRemoval(enemies)	
 
     if #world.debugtext.level > 20 then
@@ -104,22 +105,24 @@ end
 
 
 function love.draw()
-	--cam:attach()  --Attach the camera
+	cam:attach()  --Attach the camera
 
 	--Draw Background and UI Elements
 	love.graphics.draw(background, 0, 0)
-	love.graphics.setColor(1000,0,0, 255)
+	
+	--Instructions Text
+	--[[love.graphics.setColor(1000,0,0, 255)
 	love.graphics.print("Button 1-3 will spawn enemies", screenwidth - 300, 40)
 	love.graphics.print("F1 Turns on player debug information", screenwidth - 300, 60)
 	love.graphics.print("F2 Turns on enemy debug information", screenwidth - 300, 80)
 	love.graphics.print("F3 Turns on collision level debug information", screenwidth - 300, 100)
 	love.graphics.print("F4 Turns on collision entity debug information", screenwidth - 300, 120)
-	love.graphics.print("F6 Turns off AI", screenwidth - 300, 140)
+	love.graphics.print("F6 Turns off AI", screenwidth - 300, 140) --]]
 
 	love.graphics.setColor(1000,0,0, 255)
 	if player.isFacingRight then  --Draw player energy	
-		love.graphics.print("Energy: " .. tostring(player.energy), player.x+16, player.y+15, math.rad(90))
-		love.graphics.print("Health: " .. tostring(player.health), player.x+26, player.y+15, math.rad(90))
+		love.graphics.print("Energy: " .. tostring(player.energy), player.x+12, player.y+15, math.rad(90))
+		love.graphics.print("Health: " .. tostring(player.health), player.x+22, player.y+15, math.rad(90))
 	else		
 		love.graphics.print("Energy: " .. tostring(player.energy), player.x + 90, player.y+15, math.rad(90))
 		love.graphics.print("Health: " .. tostring(player.health), player.x+100, player.y+15, math.rad(90))
@@ -140,6 +143,8 @@ function love.draw()
 	--Draw Player animations
 	if player.animation == 'walk' and not player.isAttacking then
 		player.animations.walkanimation:draw(playersheet, player.x,player.y)
+	elseif player.animation == 'run' and not player.isAttacking then
+		player.animations.runanimation:draw(playersheet, player.x,player.y)
 	elseif player.animation == 'idle' and not player.isAttacking then
 		player.animations.standstill:draw(playersheet, player.x,player.y)
 	elseif player.isAttacking and player.action == "jab" then
@@ -151,7 +156,7 @@ function love.draw()
 	elseif player.isAttacking and player.action == "kick" then
 		player.animations.kick:draw(playersheet, player.x, player.y)
 	elseif player.isAttacking and player.action == "frontkick" then
-		player.animations.frontkick:draw(playersheet, player.x, player.y)		
+		player.animations.frontkick:draw(playersheet, player.x, player.y)	
 	end
 
 	--Draw Enemies
@@ -184,7 +189,16 @@ function love.draw()
 		if world.debug.enemies then			
 			
 			local ix = 0 -- Variable for the state tables to display properly
-			--Check the state table and display any true values above the enemy
+
+			--Check the velocity table and display any true values above the enemy
+			for i,values in pairs(value.velocity) do
+				if values then
+					love.graphics.print(tostring(i) .. ": " .. tostring(values), value.x, value.y - ix)
+					ix = ix + 10
+				end
+			end
+			
+			--Check the player tracker table and display any true values above the enemy
 			for i,values in pairs(value.player_tracker) do
 				if values then
 					love.graphics.print(tostring(i) .. ": " .. tostring(values), value.x, value.y - ix)
@@ -261,7 +275,7 @@ function love.draw()
     	end
 
 	end
-	--cam:detach()  -- Detach the camera
+	cam:detach()  -- Detach the camera
 
 end   --End Draw Function
 
@@ -402,7 +416,7 @@ function load_graphics()
 	background = love.graphics.newImage("/assets/Background.png")
 	playersheet = love.graphics.newImage("/assets/player_sheet.png")
 	enemygrid = anim8.newGrid(90,100, enemysheet:getWidth(), enemysheet:getHeight())
-	playergrid = anim8.newGrid(99, 110, playersheet:getWidth(), playersheet:getHeight(), 3, 0)
+	playergrid = anim8.newGrid(99, 110, playersheet:getWidth(), playersheet:getHeight(), 8, 0)
 	local crossspeed = 0.18
 	local hookspeed = 0.6
 	local kickspeed = 0.3
@@ -428,11 +442,14 @@ function load_graphics()
 
 	--Main Player Graphics
 	mainPlayer_standstill = anim8.newAnimation(playergrid(1,1, 2,1, 1,2), 0.3)
-	mainPlayer_walkanimation = anim8.newAnimation(playergrid(3,3, 2,4, 4,3, 3,4, 5,3, 4,4), 0.12)
+	mainPlayer_walkanimation = anim8.newAnimation(playergrid(10, 1, 9, 2, 8, 3, 7, 4, 10, 2, 9, 3), 0.12)
 	mainPlayer_jab = anim8.newAnimation(playergrid(3,1, 4,1, 4,1), {0.03, jabspeed/2 +8,0.03} )
-	mainPlayer_cross = anim8.newAnimation(playergrid(4, 2), 0.4, 'pause')
-	mainPlayer_kick = anim8.newAnimation(playergrid(5,2, 1,3), {kickspeed/2,kickspeed/2 + .5} )
-	mainPlayer_frontkick = anim8.newAnimation(playergrid(2,3, 1,4, 2,3), {0.08,frontkickspeed/2, frontkickspeed/2})
+
+	mainPlayer_cross = anim8.newAnimation(playergrid(5, 2), 0.4, 'pause')
+	mainPlayer_kick = anim8.newAnimation(playergrid(3,4, 5,3), {kickspeed/2,kickspeed/2 + .5} )
+	mainPlayer_frontkick = anim8.newAnimation(playergrid(4,4, 5,4, 4,4), {0.08,frontkickspeed/2, frontkickspeed/2})
+	mainPlayer_runanimation = anim8.newAnimation(playergrid(6, 1, 7, 1, 6, 2, 8, 1, 7, 2, 6, 3, 9, 1, 8, 2, 7, 3, 6, 4), 0.08)
+	mainPlayer_punchreaction = anim8.newAnimation(playergrid(3,2), 0.09)
 end
 
 

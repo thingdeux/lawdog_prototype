@@ -10,7 +10,11 @@ function doPlayerAnimation(key,dt)
 			else
 				if player.velocity.x < player.maxspeed*2 then
 					player.velocity.x = player.velocity.x + player.speed*dt
-					player.animation = 'walk'
+					if player.velocity.x < player.maxspeed then
+						player.animation = 'walk'
+					elseif player.velocity.x > player.maxspeed then
+						player.animation = 'run'
+					end
 				end
 			end
 		elseif direction == 'left' then
@@ -22,7 +26,11 @@ function doPlayerAnimation(key,dt)
 			else
 				if player.velocity.x > -player.maxspeed*2 then
 					player.velocity.x = player.velocity.x - player.speed*dt
-					player.animation = 'walk'
+					if player.velocity.x < -player.maxspeed then
+						player.animation = 'run'
+					elseif player.velocity.x > -player.maxspeed then
+						player.animation = 'walk'
+					end
 				end
 			end
 		end
@@ -168,22 +176,52 @@ end
 
 function doPlayerProcessing(dt)
 
-	
+	local function stopPlayer(speed)
+		if (speed > 50 and speed < 100) or (speed < -50 and speed > -100 )then
+			return player.stoppingSpeed*40
+		elseif (speed > 100 and speed < 150) or (speed < -100 and speed > -150 )then
+			return player.stoppingSpeed*60
+		elseif (speed > 150 and speed < 200) or (speed < -150 and speed > -200 ) then
+			return player.stoppingSpeed*80
+		elseif (speed > 200 and speed < 250) or (speed < -200 and speed > -250 ) then
+			return player.stoppingSpeed*100
+		elseif (speed > 250 and speed < 300) or (speed < -250 and speed > -300 )then
+			return player.stoppingSpeed*120
+		elseif (speed > 300 and speed < 350) or (speed < -300 and speed > -350 )then
+			return player.stoppingSpeed*140
+		else
+			return player.stoppingSpeed*160
+		end
+
+	end
+
+	--Once they're really moving apply wind resistance
 	if player.velocity.x > 50 then
-		player.velocity.x = -world.windResistance*dt*player.stoppingSpeed + player.velocity.x
+		player.velocity.x = -world.windResistance*dt + player.velocity.x
+		player.x = player.x + player.velocity.x*dt
+		snapPlayerBoundingBoxes()
+	elseif player.velocity.x < -50 then	
+		player.velocity.x = world.windResistance*dt + player.velocity.x
 		player.x = player.x + player.velocity.x*dt
 		snapPlayerBoundingBoxes()
 	end
 
-	if player.velocity.x < -50 then
-		player.velocity.x = world.windResistance*dt*player.stoppingSpeed + player.velocity.x
-		player.x = player.x + player.velocity.x*dt
-		snapPlayerBoundingBoxes()
-	end
-	if player.velocity.x > -49 and player.velocity.x < 49 and player.velocity.x ~= 0 and player.animation == 'idle' then
+	--This is a 'patch' to catch when the player hasn't really started moving and thus hasn't engaged wind resistance
+	if player.velocity.x >= -49.99 and player.velocity.x <= 49.99 and player.velocity.x ~= 0 and player.animation == 'idle' then
 		player.velocity.x = 0		
 	end
-	
+
+	--These will rapidly slow the player down using the above function when they're moving and idle
+	--or Moving and no longer running.
+	if player.velocity.x > 50 and player.animation == 'idle' then
+		player.velocity.x = player.velocity.x - stopPlayer(player.velocity.x)*dt	
+	elseif player.velocity.x < -50 and player.animation == 'idle' then
+		player.velocity.x = player.velocity.x + stopPlayer(player.velocity.x)*dt	
+	elseif player.velocity.x > 50 and player.animation == 'run' and not player.isRunning then
+		player.velocity.x = player.velocity.x - stopPlayer(player.velocity.x)*dt	
+	elseif player.velocity.x < -50 and player.animation == 'run' and not player.isRunning then
+		player.velocity.x = player.velocity.x + stopPlayer(player.velocity.x)*dt	
+	end
 	
 	if player.action then --If an action has been performed
 		if player.action == "jab" or player.action == "hook" or 
@@ -194,13 +232,10 @@ function doPlayerProcessing(dt)
 		end
 	end
 
-	if not player.isOnGround then		
+	if not player.isOnGround then --When the player is not on the ground pull them down by grav
 		player.y = player.y + player.velocity.y
 		doPlayerAnimation('fall',dt)
 		snapPlayerBoundingBoxes()
-	end
-	if player.isOnStairs then
-		player.y = player.y + player.velocity.y		
 	end
 	
 end
@@ -219,16 +254,16 @@ function snapPlayerBoundingBoxes()
 			player.boundingbox.fist_box:moveTo(player.x + player.boundingbox.offset_moveto_fist_x, player.y + player.boundingbox.offset_moveto_fist_y*2)
 			player.boundingbox.foot_box:moveTo(player.x + player.boundingbox.offset_moveto_fist_x, player.y + player.boundingbox.offset_moveto_foot_y)
 		else
-			player.boundingbox.level:moveTo(player.x + player.boundingbox.offset_moveto_level_x, player.y + player.boundingbox.offset_moveto_level_y)
-			player.boundingbox.entity_main:moveTo(player.x + player.boundingbox.offset_moveto_level_x, player.y + player.boundingbox.offset_moveto_level_y)
+			player.boundingbox.level:moveTo(player.x + player.boundingbox.offset_moveto_level_x + 12, player.y + player.boundingbox.offset_moveto_level_y)
+			player.boundingbox.entity_main:moveTo(player.x + player.boundingbox.offset_moveto_level_x + 12, player.y + player.boundingbox.offset_moveto_level_y)
 
 			player.boundingbox.entity_top_left:moveTo(player.x + player.boundingbox.offset_moveto_entity_left_x, player.y + player.boundingbox.offset_moveto_entity_top_y)
 			player.boundingbox.entity_top_right:moveTo(player.x + player.boundingbox.offset_moveto_entity_right_x, player.y + player.boundingbox.offset_moveto_entity_top_y)
 			player.boundingbox.entity_bottom_right:moveTo(player.x + player.boundingbox.offset_moveto_entity_right_x, player.y + player.boundingbox.offset_moveto_entity_bottom_y)
 			player.boundingbox.entity_bottom_left:moveTo(player.x + player.boundingbox.offset_moveto_entity_left_x, player.y + player.boundingbox.offset_moveto_entity_bottom_y)
 
-			player.boundingbox.fist_box:moveTo(player.x + 14, player.y + player.boundingbox.offset_moveto_fist_y*2)
-			player.boundingbox.foot_box:moveTo(player.x + 14, player.y + player.boundingbox.offset_moveto_foot_y)
+			player.boundingbox.fist_box:moveTo(player.x + 18, player.y + player.boundingbox.offset_moveto_fist_y*2)
+			player.boundingbox.foot_box:moveTo(player.x + 18, player.y + player.boundingbox.offset_moveto_foot_y)
 
 		end
 end
@@ -250,6 +285,8 @@ function create_player()
 	player.animations.cross = mainPlayer_cross:clone()
 	player.animations.kick = mainPlayer_kick:clone()
 	player.animations.frontkick = mainPlayer_frontkick:clone()
+	player.animations.runanimation = mainPlayer_runanimation:clone()
+	player.animations.punched = mainPlayer_punchreaction:clone()
 
 
 	player.punchDamage = 25
@@ -282,8 +319,8 @@ function create_player()
 	player.boundingbox = {}
 
 	--Offset measurements for snapping the bounding box to the player
-	player.turnoffset = 0
-	player.boundingbox.offset_moveto_fist_x = 84
+	player.turnoffset = 7
+	player.boundingbox.offset_moveto_fist_x = 80
 	player.boundingbox.offset_moveto_fist_y = 26
 	player.boundingbox.offset_moveto_foot_y = 80
 	player.boundingbox.fist_color = 120
@@ -291,7 +328,7 @@ function create_player()
 	player.boundingbox.offset_moveto_entity_top_y = 25
 	player.boundingbox.offset_moveto_entity_right_x = 40 
 	player.boundingbox.offset_moveto_entity_bottom_y = 75
-	player.boundingbox.offset_moveto_level_x = 46
+	player.boundingbox.offset_moveto_level_x = 40
 	player.boundingbox.offset_moveto_level_y = 55
 	player.boundingbox.level_sizeX = 46
 	player.boundingbox.level_sizeY = 90

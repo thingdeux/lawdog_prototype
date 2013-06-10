@@ -65,11 +65,19 @@ function ground_collision (dt, shape_a, shape_b, mtv_x, mtv_y)
 		end
 		if checkCollisionContainers(world.wallContainer, isLevel) then
 			if isPlayer then
-				player.x = player.x + mtv_x - 2
+				if mtv_x >= 0 then -- if the wall is on the right
+					player.x = player.x + mtv_x + 2
+				else  --If the wall is on the left push the other way
+					player.x = player.x + mtv_x - 2
+				end
 				snapPlayerBoundingBoxes()
 				player.velocity.x = 0
 			elseif isEnemy then
-				enemyIndex.x = enemyIndex.x + mtv_x - 2
+				if mtv_x >= 0 then -- if the wall is on the right				
+					enemyIndex.x = enemyIndex.x + mtv_x + 2
+				else
+					enemyIndex.x = enemyIndex.x + mtv_x - 2
+				end
 				snapEnemyBoundingBoxes(enemyIndex)
 				enemyIndex.velocity.x = 0
 			end
@@ -170,14 +178,6 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 							snapEnemyBoundingBoxes(enemyIndex) --This is what keeps the bounding boxes attached to the enemies, the boxes move with them because of this
 
 							player.velocity.x = 0 --Set the enemies velocity to 0 as well so he isn't moving either
-
-							--This is a "patch" I applied because sometimes the speeds of the two colliding objects is so high they warp through each other
-							--Comment it out to see what things are like without it. This may be what needs fixing.
-							--[[if mtv_x > 4 then
-								player.x = player.x + mtv_x*dt
-							elseif mtv_x < -4 then
-								player.x = player.x - mtv_x*dt
-							end  --]]
 							
 							snapPlayerBoundingBoxes()	--This is what keeps the bounding boxes attached to the player, the boxes move with them because of this
 						end
@@ -292,11 +292,11 @@ function entity_collision(dt, shape_a, shape_b, mtv_x, mtv_y)
 
 						if not enemyIndex.dodged then
 							if checkCollisionContainers({enemyIndex.boundingbox.entity_bottom_right}, isEnemy) then  --If you front kick them on the right they'll go left...
-								enemyIndex.velocity.x = enemyIndex.velocity.x - 300
+								enemyIndex.velocity.x = enemyIndex.velocity.x - 300 + player.velocity.x/2
 								enemyIndex.velocity.y = enemyIndex.velocity.y - 6
 								enemyIndex.isOnGround = false
 							else  --If you front kick them on the left they'll go right...
-								enemyIndex.velocity.x = enemyIndex.velocity.x + 300	
+								enemyIndex.velocity.x = enemyIndex.velocity.x + 300 + player.velocity.x/2	
 								enemyIndex.velocity.y = enemyIndex.velocity.y - 6
 								enemyIndex.isOnGround = false
 							end
